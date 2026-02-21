@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PikPak Cloud Manager v7</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a0a2e,#0d1b3e);padding:20px 30px;border-bottom:1px solid #2a2a4a;display:flex;align-items:center;gap:15px}
+.header h1{font-size:1.5em;background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .tag{font-size:.7em;background:#22c55e;color:#000;padding:2px 8px;border-radius:10px;display:none}
+.header .tag.show{display:inline}
+.tabs{display:flex;background:#111;border-bottom:1px solid #333}
+.tab{padding:12px 24px;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;color:#888}
+.tab:hover{color:#fff}
+.tab.active{color:#a78bfa;border-color:#a78bfa}
+.content{max-width:1000px;margin:0 auto;padding:20px}
+.panel{display:none}.panel.active{display:block}
+.card{background:#141428;border:1px solid #2a2a4a;border-radius:12px;padding:20px;margin-bottom:16px}
+.card h3{margin-bottom:12px;color:#a78bfa}
+input,button,select,textarea{font-family:inherit;font-size:.95em}
+input[type=text],input[type=email],input[type=password]{width:100%;padding:10px 14px;background:#0d0d20;border:1px solid #333;border-radius:8px;color:#fff;margin-bottom:10px}
+input:focus{border-color:#a78bfa;outline:none}
+.btn{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:.2s}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#3b82f6);color:#fff}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-green{background:linear-gradient(135deg,#059669,#10b981);color:#fff}
+.btn-green:hover{opacity:.9;transform:translateY(-1px)}
+.btn-sm{padding:6px 12px;font-size:.85em}
+.btn-outline{background:transparent;border:1px solid #555;color:#ccc}
+.btn-outline:hover{border-color:#a78bfa;color:#a78bfa}
+.breadcrumb{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;font-size:.9em}
+.breadcrumb span{color:#60a5fa;cursor:pointer}.breadcrumb span:hover{text-decoration:underline}
+.breadcrumb .sep{color:#555;cursor:default}
+.file-list{list-style:none}
+.file-item{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #1a1a30;cursor:pointer;transition:.15s}
+.file-item:hover{background:#1a1a35}
+.file-item .icon{font-size:1.3em;width:30px;text-align:center}
+.file-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-item .size{color:#888;font-size:.85em;min-width:70px;text-align:right}
+.file-item input[type=checkbox]{width:18px;height:18px;accent-color:#7c3aed}
+.status{padding:10px;border-radius:8px;margin:10px 0;font-size:.9em}
+.status.ok{background:#0a2a0a;border:1px solid #22c55e;color:#22c55e}
+.status.err{background:#2a0a0a;border:1px solid #ef4444;color:#ef4444}
+.status.info{background:#0a1a2a;border:1px solid #3b82f6;color:#60a5fa}
+.status.warn{background:#2a1a0a;border:1px solid #f59e0b;color:#fbbf24}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:100;display:none}
+.overlay.show{display:flex}
+.overlay-card{background:#1a1a30;border:1px solid #333;border-radius:16px;padding:30px;max-width:500px;width:90%;text-align:center}
+.progress-bar{width:100%;height:8px;background:#222;border-radius:4px;overflow:hidden;margin:10px 0}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);transition:width .3s;width:0%}
+.login-methods{display:flex;gap:10px;margin-bottom:15px}
+.login-methods .lm{flex:1;padding:8px;text-align:center;border:1px solid #333;border-radius:8px;cursor:pointer;transition:.2s}
+.login-methods .lm.active{border-color:#a78bfa;background:#1a1035}
+.link-result{background:#0d0d1a;border:1px solid #222;border-radius:8px;padding:10px;margin-top:8px;word-break:break-all;font-size:.85em;max-height:200px;overflow-y:auto}
+.toolbar{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;align-items:center}
+#loginStatus{font-size:.85em;margin-left:auto;color:#888}
+.captcha-box{background:#1a1030;border:1px solid #7c3aed;border-radius:10px;padding:16px;margin:12px 0;text-align:center}
+.captcha-box p{margin-bottom:10px;color:#d4b5ff}
+.captcha-box a{color:#60a5fa;font-weight:600;word-break:break-all}
+.captcha-box .steps{text-align:left;margin:12px 0;font-size:.9em;color:#ccc;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>☁️ PikPak Cloud Manager</h1>
+  <span class="tag" id="autoTag">auto-login</span>
+  <span id="loginStatus"></span>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('cloud')">Minha Nuvem</div>
+  <div class="tab" onclick="switchTab('share')">Link Compartilhado</div>
+</div>
+<div class="content">
+  <!-- CLOUD PANEL -->
+  <div class="panel active" id="panel-cloud">
+    <div class="card" id="loginCard">
+      <h3>🔐 Login PikPak</h3>
+      <div class="login-methods">
+        <div class="lm active" onclick="setLoginMethod('password')">Email & Senha</div>
+        <div class="lm" onclick="setLoginMethod('token')">Access Token</div>
+      </div>
+      <div id="login-password">
+        <input type="email" id="loginEmail" placeholder="Email PikPak">
+        <input type="password" id="loginPass" placeholder="Senha">
+        <button class="btn btn-primary" id="btnLogin" onclick="doLogin()">Entrar</button>
+      </div>
+      <div id="login-token" style="display:none">
+        <input type="text" id="loginToken" placeholder="Cole o Access Token aqui (com ou sem 'Bearer ')">
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="doLoginToken()">Entrar com Token</button>
+          <button class="btn btn-outline btn-sm" id="btnForce" onclick="forceToken()" style="display:none">Salvar mesmo assim</button>
+        </div>
+        <div style="margin-top:10px;font-size:.82em;color:#aaa;line-height:1.7;background:#0d0d1a;padding:12px;border-radius:8px;border:1px solid #222">
+          <b style="color:#a78bfa">Como copiar o token:</b><br>
+          1. Abra <b>mypikpak.com</b> e faça login normal<br>
+          2. Aperte <b>F12</b> → aba <b>Network</b><br>
+          3. Clique em qualquer pasta no PikPak (gera requests)<br>
+          4. Na lista, clique em qualquer request que tenha <code>api-drive</code><br>
+          5. Em <b>Headers</b> → procure <code style="color:#a78bfa">Authorization: Bearer eyJ...</code><br>
+          6. Clique com botão direito no valor → <b>Copy value</b><br>
+          7. Cole aqui (pode colar com ou sem "Bearer ")
+        </div>
+      </div>
+      <div id="captchaBox" class="captcha-box" style="display:none">
+        <p>🧩 <b>Verificação necessária!</b></p>
+        <div class="steps">
+          1️⃣ Clique no link abaixo pra abrir o captcha<br>
+          2️⃣ Complete o puzzle (arrastar peça)<br>
+          3️⃣ Volte aqui e clique <b>"Já verifiquei"</b>
+        </div>
+        <a id="captchaLink" href="#" target="_blank">🔗 Abrir Captcha</a>
+        <div style="margin-top:14px">
+          <button class="btn btn-green" onclick="retryCaptcha()">✅ Já verifiquei!</button>
+        </div>
+      </div>
+      <div id="loginMsg"></div>
+    </div>
+    <div id="cloudBrowser" style="display:none">
+      <div class="card">
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <div class="toolbar">
+          <label><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"> Selecionar tudo</label>
+          <button class="btn btn-sm btn-outline" onclick="downloadSelected()">⬇ Download Selecionados</button>
+          <button class="btn btn-sm btn-outline" onclick="sendToDropbox()">☁ Enviar pro Dropbox</button>
+        </div>
+        <ul class="file-list" id="fileList"></ul>
+        <div id="loadMore" style="display:none;text-align:center;padding:10px">
+          <button class="btn btn-sm btn-outline" onclick="loadMore()">Carregar mais...</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>☁ Dropbox</h3>
+        <input type="text" id="dbxToken" placeholder="Dropbox Access Token">
+        <input type="text" id="dbxFolder" placeholder="Pasta destino (ex: /PikPak)" value="/PikPak">
+        <button class="btn btn-sm btn-outline" onclick="testDropbox()">Testar Token</button>
+        <div id="dbxMsg"></div>
+      </div>
+    </div>
+  </div>
+  <!-- SHARE PANEL -->
+  <div class="panel" id="panel-share">
+    <div class="card">
+      <h3>🔗 Extrair Links de Compartilhamento</h3>
+      <input type="text" id="shareUrl" placeholder="Cole a URL mypikpak.com/s/...">
+      <button class="btn btn-primary" onclick="extractShare()">Extrair Links</button>
+      <div id="shareMsg"></div>
+      <div id="shareResults"></div>
+    </div>
+  </div>
+</div>
+<!-- Progress Overlay -->
+<div class="overlay" id="progressOverlay">
+  <div class="overlay-card">
+    <h3 id="progressTitle">Processando...</h3>
+    <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+    <p id="progressText">Aguarde...</p>
+  </div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+let currentPath = [];
+let currentFiles = [];
+let nextPageToken = '';
+let loginMethod = 'password';
+
+function switchTab(t) {
+  $$('.tab').forEach(e => e.classList.remove('active'));
+  $$('.panel').forEach(e => e.classList.remove('active'));
+  event.target.classList.add('active');
+  $('#panel-' + t).classList.add('active');
+}
+
+function setLoginMethod(m) {
+  loginMethod = m;
+  $$('.login-methods .lm').forEach(e => e.classList.remove('active'));
+  event.target.classList.add('active');
+  $('#login-password').style.display = m === 'password' ? '' : 'none';
+  $('#login-token').style.display = m === 'token' ? '' : 'none';
+  $('#captchaBox').style.display = 'none';
+}
+
+function showMsg(el, msg, type) {
+  $(el).innerHTML = `<div class="status ${type}">${msg}</div>`;
+}
+
+async function doLogin() {
+  const email = $('#loginEmail').value.trim();
+  const pass = $('#loginPass').value.trim();
+  if (!email || !pass) { showMsg('#loginMsg', '❌ Preencha email e senha', 'err'); return; }
+
+  showMsg('#loginMsg', '⏳ Conectando...', 'info');
+  $('#captchaBox').style.display = 'none';
+
+  try {
+    const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({method:'password', username: email, password: pass})});
+    const d = await r.json();
+    if (d.success) {
+      showMsg('#loginMsg', '✅ ' + d.message, 'ok');
+      $('#captchaBox').style.display = 'none';
+      onLoginSuccess(d.auto_login);
+    } else if (d.needs_captcha) {
+      showMsg('#loginMsg', '', '');
+      showCaptcha(d.captcha_url);
+    } else {
+      showMsg('#loginMsg', '❌ ' + (d.error || 'Erro'), 'err');
+    }
+  } catch(e) { showMsg('#loginMsg', '❌ ' + e.message, 'err'); }
+}
+
+function showCaptcha(url) {
+  const box = $('#captchaBox');
+  box.style.display = '';
+  const link = $('#captchaLink');
+  link.href = url;
+  link.textContent = '🔗 Abrir Captcha (clique aqui)';
+}
+
+async function retryCaptcha() {
+  const email = $('#loginEmail').value.trim();
+  const pass = $('#loginPass').value.trim();
+
+  showMsg('#loginMsg', '⏳ Verificando...', 'info');
+
+  try {
+    const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({method:'captcha_retry', username: email, password: pass})});
+    const d = await r.json();
+    if (d.success) {
+      showMsg('#loginMsg', '✅ ' + d.message, 'ok');
+      $('#captchaBox').style.display = 'none';
+      onLoginSuccess(false);
+    } else if (d.needs_captcha) {
+      showMsg('#loginMsg', '⚠️ Captcha ainda nao verificado. Complete o puzzle e tente novamente.', 'warn');
+      showCaptcha(d.captcha_url);
+    } else {
+      showMsg('#loginMsg', '❌ ' + (d.error || 'Erro'), 'err');
+    }
+  } catch(e) { showMsg('#loginMsg', '❌ ' + e.message, 'err'); }
+}
+
+async function doLoginToken() {
+  const token = $('#loginToken').value.trim();
+  if (!token) { showMsg('#loginMsg', '❌ Cole o token primeiro', 'err'); return; }
+  showMsg('#loginMsg', '⏳ Validando token...', 'info');
+  $('#btnForce').style.display = 'none';
+  try {
+    const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({method:'token', access_token: token})});
+    const d = await r.json();
+    if (d.success) {
+      showMsg('#loginMsg', '✅ ' + d.message, 'ok');
+      onLoginSuccess(false);
+    } else {
+      showMsg('#loginMsg', '❌ ' + (d.error || 'Erro'), 'err');
+      if (d.can_force) $('#btnForce').style.display = '';
+    }
+  } catch(e) { showMsg('#loginMsg', '❌ ' + e.message, 'err'); }
+}
+
+async function forceToken() {
+  const token = $('#loginToken').value.trim();
+  showMsg('#loginMsg', '⏳ Salvando token...', 'info');
+  try {
+    const r = await fetch('/api/force-token', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({access_token: token})});
+    const d = await r.json();
+    if (d.success) {
+      showMsg('#loginMsg', '✅ ' + d.message, 'ok');
+      onLoginSuccess(false);
+    } else {
+      showMsg('#loginMsg', '❌ ' + (d.error || 'Erro'), 'err');
+    }
+  } catch(e) { showMsg('#loginMsg', '❌ ' + e.message, 'err'); }
+}
+
+function onLoginSuccess(auto) {
+  $('#loginCard').style.display = 'none';
+  $('#cloudBrowser').style.display = '';
+  if (auto) $('#autoTag').classList.add('show');
+  $('#loginStatus').textContent = '🟢 Conectado';
+  navigateTo('', 'Raiz');
+}
+
+async function tryAutoLogin() {
+  try {
+    const r = await fetch('/api/auto-login', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+    const d = await r.json();
+    if (d.success) onLoginSuccess(true);
+  } catch(e) {}
+}
+
+async function navigateTo(id, name) {
+  if (id === '') { currentPath = [{id:'', name:'Raiz'}]; }
+  else {
+    const idx = currentPath.findIndex(p => p.id === id);
+    if (idx >= 0) currentPath = currentPath.slice(0, idx + 1);
+    else currentPath.push({id, name});
+  }
+  currentFiles = [];
+  nextPageToken = '';
+  await loadFiles(id);
+  renderBreadcrumb();
+}
+
+function renderBreadcrumb() {
+  const bc = $('#breadcrumb');
+  bc.innerHTML = currentPath.map((p, i) => {
+    if (i < currentPath.length - 1) return `<span onclick="navigateTo('${p.id}','${p.name.replace(/'/g,"\\'")}')">📁 ${p.name}</span><span class="sep">/</span>`;
+    return `<span style="color:#fff;cursor:default">📁 ${p.name}</span>`;
+  }).join('');
+}
+
+async function loadFiles(parentId) {
+  let url = `/api/files?parent_id=${encodeURIComponent(parentId)}`;
+  if (nextPageToken) url += `&page_token=${encodeURIComponent(nextPageToken)}`;
+
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.error) { showMsg('#loginMsg', '❌ ' + d.error, 'err'); return; }
+    const files = d.files || [];
+    currentFiles = currentFiles.concat(files);
+    nextPageToken = d.next_page_token || '';
+    renderFiles();
+    $('#loadMore').style.display = nextPageToken ? '' : 'none';
+  } catch(e) { console.error(e); }
+}
+
+function loadMore() { loadFiles(currentPath[currentPath.length - 1].id); }
+
+function fileIcon(f) {
+  if (f.kind === 'drive#folder') return '📁';
+  const m = (f.mime_type || '').toLowerCase();
+  if (m.startsWith('video')) return '🎬';
+  if (m.startsWith('audio')) return '🎵';
+  if (m.startsWith('image')) return '🖼️';
+  if (m.includes('pdf')) return '📄';
+  if (m.includes('zip') || m.includes('rar') || m.includes('7z')) return '📦';
+  return '📄';
+}
+
+function fmtSize(b) {
+  if (!b) return '';
+  b = parseInt(b);
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB';
+  return (b/1073741824).toFixed(2) + ' GB';
+}
+
+function renderFiles() {
+  const ul = $('#fileList');
+  ul.innerHTML = currentFiles.map((f, i) => `
+    <li class="file-item" data-idx="${i}" ondblclick="openFile(${i})">
+      ${f.kind !== 'drive#folder' ? `<input type="checkbox" class="fcheck" data-idx="${i}" onclick="event.stopPropagation()">` : '<span style="width:18px"></span>'}
+      <span class="icon">${fileIcon(f)}</span>
+      <span class="name" title="${f.name}">${f.name}</span>
+      <span class="size">${fmtSize(f.size)}</span>
+    </li>
+  `).join('');
+  $('#selectAll').checked = false;
+}
+
+function openFile(i) {
+  const f = currentFiles[i];
+  if (f.kind === 'drive#folder') navigateTo(f.id, f.name);
+}
+
+function toggleSelectAll() {
+  const v = $('#selectAll').checked;
+  $$('.fcheck').forEach(c => c.checked = v);
+}
+
+function getSelected() {
+  return [...$$('.fcheck:checked')].map(c => currentFiles[parseInt(c.dataset.idx)]);
+}
+
+async function downloadSelected() {
+  const sel = getSelected();
+  if (!sel.length) { alert('Selecione arquivos primeiro'); return; }
+  for (const f of sel) {
+    try {
+      const r = await fetch(`/api/file-link?file_id=${f.id}`);
+      const d = await r.json();
+      if (d.links && d.links.length) window.open(d.links[0].url, '_blank');
+    } catch(e) { console.error(e); }
+  }
+}
+
+async function sendToDropbox() {
+  const sel = getSelected();
+  const token = $('#dbxToken').value.trim();
+  const folder = $('#dbxFolder').value.trim() || '/PikPak';
+  if (!sel.length) { alert('Selecione arquivos'); return; }
+  if (!token) { alert('Configure o token do Dropbox'); return; }
+
+  const ov = $('#progressOverlay');
+  ov.classList.add('show');
+
+  for (let i = 0; i < sel.length; i++) {
+    const f = sel[i];
+    const pct = ((i) / sel.length * 100).toFixed(0);
+    $('#progressTitle').textContent = `Enviando ${i+1}/${sel.length}`;
+    $('#progressText').textContent = `📥 Obtendo link: ${f.name}`;
+    $('#progressFill').style.width = pct + '%';
+
+    try {
+      const lr = await fetch(`/api/file-link?file_id=${f.id}`);
+      const ld = await lr.json();
+      if (!ld.links || !ld.links.length) { $('#progressText').textContent = `⚠ Sem link: ${f.name}`; continue; }
+
+      $('#progressText').textContent = `☁ Enviando: ${f.name}`;
+      const sr = await fetch('/api/dropbox-send', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({dropbox_token: token, file_url: ld.links[0].url, file_name: f.name, folder})});
+      const sd = await sr.json();
+      if (!sd.success) $('#progressText').textContent = `❌ ${f.name}: ${sd.error}`;
+    } catch(e) { $('#progressText').textContent = `❌ ${f.name}: ${e.message}`; }
+  }
+
+  $('#progressFill').style.width = '100%';
+  $('#progressTitle').textContent = 'Concluído!';
+  $('#progressText').textContent = `${sel.length} arquivo(s) processado(s)`;
+  setTimeout(() => ov.classList.remove('show'), 2500);
+}
+
+async function testDropbox() {
+  const token = $('#dbxToken').value.trim();
+  if (!token) { showMsg('#dbxMsg', '❌ Cole o token', 'err'); return; }
+  showMsg('#dbxMsg', '⏳ Testando...', 'info');
+  try {
+    const r = await fetch('/api/dropbox-test', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token})});
+    const d = await r.json();
+    if (d.success) showMsg('#dbxMsg', `✅ Conectado: ${d.name} (${d.email})`, 'ok');
+    else showMsg('#dbxMsg', '❌ ' + (d.error || 'Erro'), 'err');
+  } catch(e) { showMsg('#dbxMsg', '❌ ' + e.message, 'err'); }
+}
+
+async function extractShare() {
+  const url = $('#shareUrl').value.trim();
+  if (!url) return;
+  showMsg('#shareMsg', '⏳ Listando arquivos...', 'info');
+  $('#shareResults').innerHTML = '';
+
+  try {
+    const r = await fetch('/api/list', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
+    const d = await r.json();
+    if (d.error) { showMsg('#shareMsg', '❌ ' + d.error, 'err'); return; }
+    if (!d.files || !d.files.length) { showMsg('#shareMsg', '⚠ Nenhum arquivo encontrado', 'info'); return; }
+
+    showMsg('#shareMsg', `✅ ${d.files.length} arquivo(s). Extraindo links...`, 'ok');
+
+    const ids = d.files.filter(f => f.kind !== 'drive#folder').map(f => f.id);
+    const lr = await fetch('/api/links', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({share_id: d.share_id, file_ids: ids})});
+    const ld = await lr.json();
+
+    let html = '<div style="margin-top:12px">';
+    let allLinks = [];
+    for (const r of (ld.results || [])) {
+      if (r.links && r.links.length) {
+        allLinks.push(r.links[0]);
+        html += `<div style="padding:6px 0;border-bottom:1px solid #222"><b>${r.name}</b><br>
+          <a href="${r.links[0]}" target="_blank" style="color:#60a5fa;font-size:.85em;word-break:break-all">${r.links[0].substring(0,80)}...</a>
+          <button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('${r.links[0].replace(/'/g,"\\'")}')">📋</button></div>`;
+      }
+    }
+    html += `<div style="margin-top:12px"><button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('allLinks').textContent)">📋 Copiar Todos</button></div>`;
+    html += `<pre id="allLinks" style="display:none">${allLinks.join('\n')}</pre></div>`;
+    $('#shareResults').innerHTML = html;
+  } catch(e) { showMsg('#shareMsg', '❌ ' + e.message, 'err'); }
+}
+
+// Auto-login on load
+window.addEventListener('DOMContentLoaded', tryAutoLogin);
+</script>
+</body>
+</html>

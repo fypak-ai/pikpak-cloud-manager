@@ -443,8 +443,12 @@ def list_share():
     pass_code = data.get('pass_code', '')
     parent_id = data.get('parent_id', '')
 
+    headers = {"X-Device-ID": DEVICE_ID, "X-Client-ID": WEB_CLIENT_ID, "X-Client-Version": WEB_CLIENT_VERSION}
+
     all_files = []
     page_token = ""
+    first_request = True
+
     while True:
         params = {"share_id": share_id, "limit": "100", "thumbnail_size": "SIZE_LARGE"}
         if parent_id:
@@ -454,20 +458,37 @@ def list_share():
         if page_token:
             params["page_token"] = page_token
 
-        r = req_lib.get(
-            f"{API_DRIVE}/drive/v1/share/detail",
-            params=params,
-            headers={"X-Device-ID": DEVICE_ID, "X-Client-ID": WEB_CLIENT_ID, "X-Client-Version": WEB_CLIENT_VERSION}
-        )
+        r = req_lib.get(f"{API_DRIVE}/drive/v1/share/detail", params=params, headers=headers)
         if r.status_code != 200:
-            break
+            err_msg = "Erro ao acessar link"
+            try:
+                err_msg = r.json().get("error_description") or r.json().get("error") or err_msg
+            except:
+                pass
+            return jsonify({"error": f"HTTP {r.status_code}: {err_msg}"}), r.status_code
+
         resp = r.json()
 
-        if not parent_id and not all_files:
+        if first_request:
+            first_request = False
             file_info = resp.get('file_info')
-            if file_info and file_info.get('kind') == 'drive#folder':
-                parent_id = file_info.get('id', '')
-                continue
+            if file_info:
+                kind = file_info.get('kind', '')
+                if kind == 'drive#folder':
+                    # It's a folder — set parent_id and re-fetch to list children
+                    parent_id = file_info.get('id', '')
+                    continue
+                else:
+                    # It's a single file — return it directly
+                    result_file = {
+                        "id": file_info.get("id", ""),
+                        "name": file_info.get("name", ""),
+                        "kind": kind,
+                        "size": int(file_info.get("size", 0) or 0),
+                        "mime_type": file_info.get("mime_type", ""),
+                        "single_file": True,
+                    }
+                    return jsonify({"files": [result_file], "share_id": share_id, "single_file": True})
 
         files = resp.get('files', [])
         if not files:
@@ -483,7 +504,7 @@ def list_share():
             "id": f.get("id", ""),
             "name": f.get("name", ""),
             "kind": f.get("kind", ""),
-            "size": int(f.get("size", 0)),
+            "size": int(f.get("size", 0) or 0),
             "mime_type": f.get("mime_type", ""),
         })
 
@@ -523,6 +544,24 @@ def get_share_links():
             results.append({"id": fid, "name": "", "links": [], "error": f"HTTP {r.status_code}"})
 
     return jsonify({"results": results})
+
+
+@app.route('/api/fetch-text', methods=['POST'])
+def fetch_text():
+    """Proxy: download a URL and return its text content (for viewing .txt/magnet files)"""
+    data = request.json
+    url = data.get('url', '')
+    if not url:
+        return jsonify({"error": "URL vazia"}), 400
+    try:
+        r = req_lib.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"}, stream=False)
+        if r.status_code != 200:
+            return jsonify({"error": f"HTTP {r.status_code}"}), 400
+        # Limit to 512KB
+        content = r.content[:524288].decode('utf-8', errors='replace')
+        return jsonify({"content": content})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ======================== Dropbox Routes ========================
 @app.route('/api/dropbox-test', methods=['POST'])

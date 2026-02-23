@@ -446,28 +446,70 @@ async function extractShare() {
     if (d.error) { showMsg('#shareMsg', '❌ ' + d.error, 'err'); return; }
     if (!d.files || !d.files.length) { showMsg('#shareMsg', '⚠ Nenhum arquivo encontrado', 'info'); return; }
 
-    showMsg('#shareMsg', `✅ ${d.files.length} arquivo(s). Extraindo links...`, 'ok');
+    const isSingle = d.single_file === true;
+    showMsg('#shareMsg', '✅ ' + d.files.length + ' arquivo(s). Extraindo links...', 'ok');
 
     const ids = d.files.filter(f => f.kind !== 'drive#folder').map(f => f.id);
+    if (!ids.length) { showMsg('#shareMsg', '⚠ Apenas pastas encontradas', 'info'); return; }
+
     const lr = await fetch('/api/links', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({share_id: d.share_id, file_ids: ids})});
     const ld = await lr.json();
 
     let html = '<div style="margin-top:12px">';
     let allLinks = [];
-    for (const r of (ld.results || [])) {
-      if (r.links && r.links.length) {
-        allLinks.push(r.links[0]);
-        html += `<div style="padding:6px 0;border-bottom:1px solid #222"><b>${r.name}</b><br>
-          <a href="${r.links[0]}" target="_blank" style="color:#60a5fa;font-size:.85em;word-break:break-all">${r.links[0].substring(0,80)}...</a>
-          <button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('${r.links[0].replace(/'/g,"\\'")}')">📋</button></div>`;
+    for (const res of (ld.results || [])) {
+      const fileInfo = d.files.find(f => f.id === res.id) || {};
+      const mime = fileInfo.mime_type || '';
+      const name = res.name || fileInfo.name || '';
+      const isText = mime.startsWith('text/') || name.match(/\.(txt|magnet|nfo|md)$/i);
+
+      if (res.links && res.links.length) {
+        allLinks.push(res.links[0]);
+        const escapedLink = res.links[0].replace(/'/g, "\\'");
+        const shortLink = res.links[0].substring(0, 90);
+        html += '<div style="padding:8px 0;border-bottom:1px solid #222">';
+        html += '<b>' + name + '</b><br>';
+        html += '<a href="' + res.links[0] + '" target="_blank" style="color:#60a5fa;font-size:.85em;word-break:break-all">' + shortLink + '...</a> ';
+        html += '<button class="btn btn-sm btn-outline" style="margin-left:4px" onclick="navigator.clipboard.writeText(\'' + escapedLink + '\')">📋 Link</button>';
+        if (isText) {
+          html += ' <button class="btn btn-sm btn-outline" onclick="viewTextFile(\'' + escapedLink + '\')">👁 Ver</button>';
+        }
+        html += '</div>';
+      } else if (res.error) {
+        html += '<div style="padding:6px 0;border-bottom:1px solid #222;color:#f87171"><b>' + (res.name || res.id) + '</b> — ' + res.error + '</div>';
       }
     }
-    html += `<div style="margin-top:12px"><button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('allLinks').textContent)">📋 Copiar Todos</button></div>`;
-    html += `<pre id="allLinks" style="display:none">${allLinks.join('\n')}</pre></div>`;
+
+    if (allLinks.length > 1) {
+      html += '<div style="margin-top:12px"><button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText(document.getElementById(\'allLinks\').textContent)">📋 Copiar Todos os Links</button></div>';
+    }
+    html += '<pre id="allLinks" style="display:none">' + allLinks.join('\n') + '</pre>';
+    html += '<div id="textViewer" style="display:none;margin-top:12px;background:#0f172a;padding:12px;border-radius:8px;max-height:400px;overflow:auto;white-space:pre-wrap;font-size:.82em;color:#cbd5e1;word-break:break-all"></div>';
+    html += '</div>';
     $('#shareResults').innerHTML = html;
+
+    if (isSingle && allLinks.length === 1) {
+      const f0 = d.files[0] || {};
+      if ((f0.mime_type || '').startsWith('text/') || (f0.name || '').match(/\.(txt|magnet|nfo|md)$/i)) {
+        viewTextFile(allLinks[0]);
+      }
+    }
   } catch(e) { showMsg('#shareMsg', '❌ ' + e.message, 'err'); }
 }
 
+async function viewTextFile(url) {
+  const viewer = document.getElementById('textViewer');
+  if (!viewer) return;
+  viewer.style.display = 'block';
+  viewer.textContent = '⏳ Carregando conteúdo...';
+  try {
+    const r = await fetch('/api/fetch-text', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
+    const d = await r.json();
+    viewer.textContent = d.content || d.error || 'Sem conteúdo';
+  } catch(e) {
+    viewer.textContent = '❌ ' + e.message;
+  }
+}
 // Auto-login on load
 window.addEventListener('DOMContentLoaded', tryAutoLogin);
 </script>

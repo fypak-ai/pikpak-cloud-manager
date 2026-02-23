@@ -1,52 +1,77 @@
 # PikPak Cloud Manager
 
-A local web app to manage your PikPak cloud storage — browse files, extract download links from shared URLs, and transfer files to Dropbox.
+Gerencie seus arquivos PikPak direto do navegador — extraia links de compartilhamentos, navegue na sua nuvem e envie para o Dropbox.
 
-## Features
+## ✅ Requisitos
 
-- **My Cloud** – Login with your PikPak account (email/password or access token), browse folders with breadcrumb navigation, select files and transfer to Dropbox
-- **Shared Link** – Paste any `mypikpak.com/s/...` URL to list files and extract direct download links
-- **Auto-login** – Persists `refresh_token` so you stay logged in across sessions
-- **Dropbox Transfer** – Bulk transfer selected files directly from PikPak to Dropbox
+- Windows 10 ou 11
+- Python 3.10+ ([python.org](https://www.python.org/downloads/))
 
-## Requirements
+## 📦 Instalação (primeira vez)
 
-- Python 3.x
-- Flask
-- requests
+Abra o **PowerShell** e rode os comandos abaixo um por um:
 
-```bash
+### 1. Criar pasta e baixar os arquivos
+
+```powershell
+mkdir C:\PikPakManager
+cd C:\PikPakManager
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/pikpak_extractor.py" -OutFile "pikpak_extractor.py"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/v7_template.html" -OutFile "v7_template.html"
+```
+
+### 2. Instalar dependências
+
+```powershell
 pip install flask requests
 ```
 
-## Usage
+### 3. Iniciar o app
 
-```bash
+```powershell
 python pikpak_extractor.py
 ```
 
-Then open [http://localhost:5000](http://localhost:5000) in your browser.
+Acesse no navegador: **http://localhost:5000**
 
-## Login
+---
 
-**Option 1 – Email/Password:** Enter your PikPak credentials. On new devices, PikPak may require captcha verification.
+## 🔄 Atualizar (versões futuras)
 
-**Option 2 – Access Token (recommended if captcha blocks):**
-1. Open [mypikpak.com](https://mypikpak.com) and log in normally
-2. Press **F12** → **Network** tab
-3. Click any folder in PikPak (triggers API requests)
-4. Find any request to `api-drive.mypikpak.net`
-5. In **Headers**, find `Authorization: Bearer eyJ...`
-6. Right-click the value → **Copy value**
-7. Paste in the Access Token field
+```powershell
+cd C:\PikPakManager
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/pikpak_extractor.py" -OutFile "pikpak_extractor.py"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/v7_template.html" -OutFile "v7_template.html"
+python pikpak_extractor.py
+```
 
-## Dropbox Setup
+---
 
-1. Go to [dropbox.com/developers](https://www.dropbox.com/developers)
-2. Create an app with `files.content.read` and `files.content.write` scopes
-3. Generate an access token and paste it in the Dropbox field
+## 🚀 Funcionalidades
 
-## Notes
+- **Link Compartilhado** — cole uma URL `mypikpak.com/s/...` e extraia todos os links de download
+- **Minha Nuvem** — navegue pelos seus arquivos PikPak com login via Access Token
+- **Envio para Dropbox** — selecione arquivos e envie em massa para o Dropbox
+- **Visualizador de texto** — abre automaticamente arquivos `.txt` com conteúdo magnet/links
 
-- Download links from shared URLs expire in ~24 hours
-- Tokens are stored locally in `pikpak_tokens.json` and `pikpak_device.json`
+---
+
+## 🔑 Login
+
+O app usa **Access Token** do PikPak (mais confiável que email/senha):
+
+1. Abra o PikPak Web ou App
+2. Pressione **F12** → aba **Network**
+3. Filtre por `api/v1` e copie o header `Authorization: Bearer XXX`
+4. Cole o token no campo correspondente no app
+
+---
+
+## 📁 Estrutura
+
+```
+C:\PikPakManager\
+├── pikpak_extractor.py   # Backend Flask
+├── v7_template.html      # Interface web
+└── pikpak_tokens.json    # Tokens salvos (gerado automaticamente)
+```

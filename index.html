@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PikPak Cloud Manager</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f1a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, #1a0533 0%, #0d1b4b 100%);
+      padding: 60px 20px 40px;
+      text-align: center;
+      border-bottom: 1px solid #7c3aed33;
+    }
+    .logo {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #a855f7, #6366f1, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      max-width: 520px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+    .badges {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: #1e1b4b;
+      border: 1px solid #4f46e5;
+      color: #a5b4fc;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .cta-section {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 40px 20px 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(168,85,247,0.3); }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #1e293b;
+      color: #a5b4fc;
+      border: 1px solid #334155;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      width: 100%;
+      padding: 40px 20px;
+    }
+    .card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: #7c3aed; }
+    .card-icon { font-size: 2rem; margin-bottom: 12px; }
+    .card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: #f1f5f9; }
+    .card p { color: #64748b; font-size: 0.9rem; line-height: 1.6; }
+    .install-section {
+      max-width: 700px;
+      width: 100%;
+      padding: 0 20px 50px;
+    }
+    .install-section h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #c4b5fd;
+    }
+    .code-block {
+      background: #0d0d1a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 18px 22px;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.88rem;
+      color: #7dd3fc;
+      line-height: 1.9;
+      overflow-x: auto;
+    }
+    .code-block span.comment { color: #475569; }
+    .code-block span.cmd { color: #a5b4fc; }
+    footer {
+      width: 100%;
+      text-align: center;
+      padding: 24px;
+      color: #334155;
+      font-size: 0.85rem;
+      border-top: 1px solid #1e293b;
+      margin-top: auto;
+    }
+    footer a { color: #6366f1; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">&#9925; PikPak Cloud Manager</div>
+  <p class="subtitle">Gerencie sua nuvem PikPak localmente — extraia links de compartilhamentos, navegue seus arquivos e transfira para o Dropbox.</p>
+  <div class="badges">
+    <span class="badge">Python 3 + Flask</span>
+    <span class="badge">Dark Mode</span>
+    <span class="badge">Auto-Login</span>
+    <span class="badge">Dropbox Transfer</span>
+    <span class="badge">Open Source</span>
+  </div>
+</header>
+
+<div class="cta-section">
+  <a class="btn btn-primary" href="https://github.com/fypak-ai/pikpak-cloud-manager/archive/refs/heads/main.zip">&#11123; Download ZIP</a>
+  <a class="btn btn-secondary" href="https://github.com/fypak-ai/pikpak-cloud-manager">&#128196; Ver no GitHub</a>
+</div>
+
+<div class="features">
+  <div class="card">
+    <div class="card-icon">&#128279;</div>
+    <h3>Extractor de Links</h3>
+    <p>Cole uma URL de compartilhamento PikPak e obtenha links de download direto com validade de ~24h.</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">&#9729;</div>
+    <h3>Minha Nuvem</h3>
+    <p>Navegue suas pastas do PikPak via browser — breadcrumb, ícones por tipo, seleção múltipla de arquivos.</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">&#128230;</div>
+    <h3>Transfer para Dropbox</h3>
+    <p>Envie arquivos selecionados diretamente do PikPak para o Dropbox com barra de progresso em tempo real.</p>
+  </div>
+  <div class="card">
+    <div class="card-icon">&#128274;</div>
+    <h3>Auto-Login Seguro</h3>
+    <p>Token salvo localmente — login automático nas próximas sessões. Suporte a captcha integrado.</p>
+  </div>
+</div>
+
+<div class="install-section">
+  <h2>&#9881; Como usar</h2>
+  <div class="code-block">
+    <span class="comment"># 1. Clone o repositório</span><br>
+    <span class="cmd">git clone https://github.com/fypak-ai/pikpak-cloud-manager.git</span><br>
+    <span class="cmd">cd pikpak-cloud-manager</span><br><br>
+    <span class="comment"># 2. Instale as dependências</span><br>
+    <span class="cmd">pip install flask requests</span><br><br>
+    <span class="comment"># 3. Execute</span><br>
+    <span class="cmd">python pikpak_extractor.py</span><br><br>
+    <span class="comment"># Acesse em http://localhost:5000</span>
+  </div>
+</div>
+
+<footer>
+  Feito por <a href="https://github.com/fypak-ai" target="_blank">@fypak-ai</a> &nbsp;&bull;&nbsp;
+  <a href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">GitHub</a>
+</footer>
+
+</body>
+</html>

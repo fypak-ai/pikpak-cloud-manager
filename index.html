@@ -479,56 +479,13 @@ async function loginWithToken() {
   if (token.toLowerCase().startsWith('bearer ')) token = token.slice(7).trim();
   token = token.replace(/^["']|["']$/g, '').trim();
 
-  showMsg('login-msg', 'info', '<span class="spin"></span> Validando token...');
+  showMsg('login-msg', 'info', '<span class="spin"></span> Salvando token...');
 
-  // Try captchaInit but don't block on CORS failure
-  let ct = '';
-  try {
-    const res = await Promise.race([
-      captchaInitForAction('GET:/drive/v1/about'),
-      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 4000))
-    ]);
-    ct = res.token || '';
-  } catch(e) {
-    // CORS or timeout — proceed without captcha token
-    ct = '';
-  }
-
-  let r;
-  try {
-    r = await proxyFetch(`${API_DRIVE}/drive/v1/about`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'X-Device-ID': STATE.deviceId,
-        'X-Captcha-Token': ct,
-        'User-Agent': 'Mozilla/5.0',
-      }
-    });
-  } catch(fetchErr) {
-    // CORS block on /about — save token directly (force mode)
-    STATE.accessToken = token;
-    saveTokens();
-    onLoginSuccess();
-    showMsg('login-msg', 'success', '✅ Token salvo! (validação bloqueada por CORS — funcionará ao listar arquivos)');
-    return;
-  }
-
-  if (r.status === 200) {
-    const d = await r.json();
-    STATE.accessToken = token;
-    STATE.userId = d.sub || '';
-    saveTokens();
-    onLoginSuccess();
-    showMsg('login-msg', 'success', '✅ Login OK!');
-  } else if (r.status === 401 || r.status === 403) {
-    showMsg('login-msg', 'error', 'Token expirado ou inválido. Copie novamente do F12 → Network.');
-  } else {
-    // Try force-save anyway — /about may CORS-fail but file endpoints work
-    STATE.accessToken = token;
-    saveTokens();
-    onLoginSuccess();
-    showMsg('login-msg', 'warn', `HTTP ${r.status} no /about — token salvo, testando ao listar arquivos...`);
-  }
+  // Save token directly and enter — validation happens on first file list
+  STATE.accessToken = token;
+  saveTokens();
+  onLoginSuccess();
+  showMsg('login-msg', 'success', '✅ Token salvo! Carregando arquivos...');
 }
 
 async function loginForceToken() {

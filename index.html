@@ -316,15 +316,12 @@ const ALGORITHMS = [
 // ===================== PROXY FETCH =====================
 // Routes requests through Flask proxy (Railway) to avoid CORS
 async function proxyFetch(url, options = {}) {
-  // Auto-detect: if running on Railway (has /api/proxy on same origin), use it
+  // Auto-detect proxy: Railway origin > localStorage > hardcoded Railway fallback
   const stored = localStorage.getItem('proxy_url') || '';
-  const selfProxy = (window.location.pathname === '/' || window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))
+  const selfProxy = (window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))
     ? window.location.origin : '';
-  const proxyBase = stored || selfProxy;
-  if (!proxyBase) {
-    // No proxy configured — try direct (will likely CORS-fail)
-    return fetch(url, options);
-  }
+  const proxyBase = selfProxy || stored || 'https://pikpak-cloud-manager-production.up.railway.app';
+
   // Route through proxy: POST to /api/proxy with {url, method, headers, body}
   const method = options.method || 'GET';
   const headers = options.headers || {};

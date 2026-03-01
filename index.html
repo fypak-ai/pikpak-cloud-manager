@@ -292,7 +292,7 @@ video#player-vid{width:100%;height:100%;display:block;outline:none;}
 // ===================== CONSTANTS =====================
 // PROXY: Flask backend on Railway. All /api/* calls go here.
 // Direct PikPak URLs kept as fallback reference only.
-const PROXY_BASE = localStorage.getItem('proxy_url') || '';
+const PROXY_BASE = localStorage.getItem('proxy_url') || 'https://pikpak-cloud-manager-production.up.railway.app';
 const API_USER   = 'https://user.mypikpak.net';
 const API_DRIVE  = 'https://api-drive.mypikpak.net';
 const CLIENT_ID  = 'YUMx5nI8ZU8Ap8pm';
@@ -301,8 +301,8 @@ const CLIENT_VER = '2.0.0';
 const PKG_NAME   = 'mypikpak.com';
 function apiUrl(path) {
   // Use proxy if configured, else try direct (will CORS-fail without proxy)
-  const base = localStorage.getItem('proxy_url') || '';
-  return base ? base.replace(/\/$/, '') + path : null;
+  const base = localStorage.getItem('proxy_url') || 'https://pikpak-cloud-manager-production.up.railway.app';
+  return base.replace(/\/$/, '') + path;
 }
 const ALGORITHMS = [
   'C9qPpZLN8ucRTaTiUMWYS9cQvWOE','+r6CQVxjzJV6LCV','F','pFJRC',
@@ -316,11 +316,7 @@ const ALGORITHMS = [
 // ===================== PROXY FETCH =====================
 // Routes requests through Flask proxy (Railway) to avoid CORS
 async function proxyFetch(url, options = {}) {
-  const proxyBase = localStorage.getItem('proxy_url') || '';
-  if (!proxyBase) {
-    // No proxy configured — try direct (will likely CORS-fail)
-    return fetch(url, options);
-  }
+  const proxyBase = localStorage.getItem('proxy_url') || 'https://pikpak-cloud-manager-production.up.railway.app';
   // Route through proxy: POST to /api/proxy with {url, method, headers, body}
   const method = options.method || 'GET';
   const headers = options.headers || {};

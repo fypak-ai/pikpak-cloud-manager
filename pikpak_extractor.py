@@ -702,7 +702,7 @@ if __name__ == '__main__':
     import os as _os
     port = int(_os.environ.get('PORT', 5000))
     print("=" * 50)
-    print("  PikPak Cloud Manager v7 (Railway/Local)")
+    print("  PikPak Cloud Manager v7.1 (Railway/Local) - player integrado")
     print(f"  Device ID: {DEVICE_ID}")
     print(f"  Listening on port {port}")
     print("=" * 50)

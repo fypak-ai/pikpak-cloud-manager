@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>PikPak Cloud Manager</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <style>
 :root{--bg:#0f0c1a;--bg2:#15112a;--bg3:#1e1836;--card:#1c1733;--border:#2e2650;--text:#e2e8f0;--muted:#94a3b8;--purple:#7c3aed;--purple-l:#a855f7;--blue:#2563eb;--blue-l:#60a5fa;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -90,6 +91,23 @@ nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.25re
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 select.inp option{background:var(--bg3);}
+
+/* PLAYER MODAL */
+.player-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.player-overlay.open{display:flex;}
+.player-wrap{width:min(96vw,1100px);background:var(--bg2);border-radius:14px;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.8);}
+.player-header{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-bottom:1px solid var(--border);}
+.player-title{flex:1;font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.player-header button{background:transparent;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:4px 8px;border-radius:6px;}
+.player-header button:hover{background:var(--bg3);color:var(--text);}
+.player-video-wrap{position:relative;background:#000;aspect-ratio:16/9;}
+video#player-vid{width:100%;height:100%;display:block;outline:none;}
+.player-controls{display:flex;align-items:center;gap:.5rem;padding:.6rem 1rem;background:var(--bg3);flex-wrap:wrap;}
+.player-controls select.inp{max-width:200px;font-size:.75rem;padding:5px 8px;}
+.player-badge{font-size:.7rem;padding:3px 8px;border-radius:999px;background:rgba(124,58,237,.2);color:var(--purple-l);border:1px solid rgba(124,58,237,.3);}
+.player-status{font-size:.75rem;color:var(--muted);flex:1;}
+.btn-play{background:rgba(124,58,237,.15);color:var(--purple-l);border:1px solid rgba(124,58,237,.3);}
+.btn-play:hover{background:rgba(124,58,237,.3);}
 </style>
 </head>
 <body>
@@ -728,7 +746,7 @@ function renderFileList() {
       <div class="file-actions">
         ${isFolder
           ? `<button class="btn btn-secondary btn-sm" onclick="openFolder('${f.id}','${esc(f.name)}')">📂 Abrir</button>`
-          : `<button class="btn btn-secondary btn-sm" onclick="getFileLink('${f.id}','${esc(f.name)}')">⬇ Link</button>`
+          : `${isPlayable(f.name,f.mime_type||'') ? `<button class="btn btn-play btn-sm" onclick="playFile('${f.id}','${esc(f.name)}')">&#9654; Play</button> ` : ''}<button class="btn btn-secondary btn-sm" onclick="getFileLink('${f.id}','${esc(f.name)}')">&#x2B07; Link</button>`
         }
       </div>`;
     container.appendChild(el);
@@ -886,6 +904,7 @@ function renderShareResults() {
       </div>
       <div class="file-actions">
         ${!isFolder ? `
+          ${isPlayable(f.name,f.mime_type||'') ? `<button class="btn btn-play btn-sm" onclick="playShareFile('${f.id}','${f.name.replace(/'/g, String.fromCharCode(39))}')">&#9654; Play</button> ` : ''}
           <button class="btn btn-secondary btn-sm" onclick="getShareLink('${f.id}','${esc(f.name)}')">⬇ Link</button>
           <button class="btn btn-secondary btn-sm" onclick="copyShareLink('${f.id}','${esc(f.name)}')">📋 Copiar</button>
         ` : ''}
@@ -1195,6 +1214,242 @@ function updateProxyIndicator() {
   if (saved) document.getElementById('inp-proxy-url').value = saved;
   updateProxyIndicator();
 })();
+
+
+// ===================== VIDEO PLAYER =====================
+let hlsInstance = null;
+let currentPlayerUrl = '';
+const VIDEO_EXTS = ['mp4','mkv','avi','mov','wmv','flv','webm','m4v','ts','mpg','mpeg','m2ts'];
+const AUDIO_EXTS = ['mp3','flac','wav','m4a','aac','ogg','opus'];
+
+function isPlayable(name, mime) {
+  if (!name) return false;
+  const ext = name.split('.').pop().toLowerCase();
+  return VIDEO_EXTS.includes(ext) || AUDIO_EXTS.includes(ext) ||
+    (mime && (mime.startsWith('video/') || mime.startsWith('audio/')));
+}
+
+async function playFile(fileId, fileName) {
+  openPlayerModal(fileName, null);
+  document.getElementById('player-status').textContent = 'Buscando link...';
+
+  const headers = await getHeaders();
+  let r;
+  try {
+    r = await proxyFetch(`${API_DRIVE}/drive/v1/files/${fileId}?thumbnail_size=SIZE_LARGE`, {headers});
+  } catch(e) {
+    document.getElementById('player-status').textContent = '❌ Erro: ' + e.message;
+    return;
+  }
+  if (!r.ok) { document.getElementById('player-status').textContent = `❌ HTTP ${r.status}`; return; }
+
+  const data = await r.json();
+  const medias = data.medias || [];
+  const urls = [];
+
+  // Collect all quality variants
+  for (const m of medias) {
+    const link = m.link || {};
+    if (link.url) {
+      const label = m.media_name || m.resolution || (m.media_type || 'stream');
+      urls.push({ label, url: link.url, type: link.mime_type || '' });
+    }
+  }
+  // Fallback to web_content_link
+  if (!urls.length && data.web_content_link) {
+    urls.push({ label: 'Original', url: data.web_content_link, type: data.mime_type || '' });
+  }
+
+  if (!urls.length) { document.getElementById('player-status').textContent = '❌ Sem link disponível'; return; }
+
+  // Populate quality selector
+  const sel = document.getElementById('player-quality-sel');
+  sel.innerHTML = '';
+  for (const u of urls) {
+    const opt = document.createElement('option');
+    opt.value = u.url;
+    opt.textContent = u.label;
+    sel.appendChild(opt);
+  }
+  sel.style.display = urls.length > 1 ? 'block' : 'none';
+
+  loadPlayerUrl(urls[0].url, urls[0].type, fileName);
+}
+
+async function playShareFile(fileId, fileName) {
+  openPlayerModal(fileName, null);
+  document.getElementById('player-status').textContent = 'Buscando link...';
+
+  const passCode = document.getElementById('inp-pass-code').value.trim();
+  const params = new URLSearchParams({share_id: STATE.shareId, file_id: fileId, thumbnail_size:'SIZE_LARGE'});
+  if (passCode) params.set('pass_code_token', passCode);
+  const headers = {'X-Device-ID': STATE.deviceId, 'X-Client-ID': CLIENT_ID, 'X-Client-Version': CLIENT_VER};
+
+  let r;
+  try {
+    r = await proxyFetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+  } catch(e) {
+    document.getElementById('player-status').textContent = '❌ ' + e.message;
+    return;
+  }
+  if (!r.ok) { document.getElementById('player-status').textContent = `❌ HTTP ${r.status}`; return; }
+
+  const data = await r.json();
+  const fi = data.file_info || data;
+  const medias = fi.medias || [];
+  const urls = [];
+
+  for (const m of medias) {
+    const link = m.link || {};
+    if (link.url) {
+      urls.push({ label: m.media_name || m.resolution || 'stream', url: link.url, type: link.mime_type || '' });
+    }
+  }
+  if (!urls.length && fi.web_content_link) {
+    urls.push({ label: 'Original', url: fi.web_content_link, type: fi.mime_type || '' });
+  }
+
+  if (!urls.length) { document.getElementById('player-status').textContent = '❌ Sem link disponível'; return; }
+
+  const sel = document.getElementById('player-quality-sel');
+  sel.innerHTML = '';
+  for (const u of urls) {
+    const opt = document.createElement('option');
+    opt.value = u.url;
+    opt.textContent = u.label;
+    sel.appendChild(opt);
+  }
+  sel.style.display = urls.length > 1 ? 'block' : 'none';
+
+  loadPlayerUrl(urls[0].url, urls[0].type, fileName);
+}
+
+function openPlayerModal(title, url) {
+  document.getElementById('player-title').textContent = title || 'Player';
+  document.getElementById('player-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Reset state
+  const vid = document.getElementById('player-vid');
+  vid.pause();
+  vid.src = '';
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  document.getElementById('player-status').textContent = url ? 'Pronto' : 'Carregando...';
+  document.getElementById('player-badge').textContent = '...';
+  document.getElementById('player-dl-link').href = '#';
+}
+
+function loadPlayerUrl(url, mimeType, fileName) {
+  const vid = document.getElementById('player-vid');
+  const badge = document.getElementById('player-badge');
+  const status = document.getElementById('player-status');
+  const dlLink = document.getElementById('player-dl-link');
+
+  // Destroy previous HLS instance
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+
+  currentPlayerUrl = url;
+  dlLink.href = url;
+  dlLink.download = fileName || 'download';
+
+  const isHls = url.includes('.m3u8') || (mimeType && mimeType.includes('mpegurl'));
+  const isAudio = AUDIO_EXTS.some(e => (fileName||'').toLowerCase().endsWith('.'+e)) ||
+                  (mimeType && mimeType.startsWith('audio/'));
+
+  if (isHls && window.Hls && Hls.isSupported()) {
+    badge.textContent = 'HLS';
+    hlsInstance = new Hls({ enableWorker: true, lowLatencyMode: false });
+    hlsInstance.loadSource(url);
+    hlsInstance.attachMedia(vid);
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+      vid.play().catch(()=>{});
+      status.textContent = 'Streaming HLS';
+      // Populate quality levels
+      const levels = hlsInstance.levels;
+      if (levels.length > 1) {
+        const sel = document.getElementById('player-quality-sel');
+        sel.innerHTML = '<option value="-1">Auto</option>';
+        levels.forEach((l, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = l.height ? `${l.height}p` : `Level ${i}`;
+          sel.appendChild(opt);
+        });
+        sel.style.display = 'block';
+        sel.onchange = (e) => {
+          hlsInstance.currentLevel = parseInt(e.target.value);
+        };
+      }
+    });
+    hlsInstance.on(Hls.Events.ERROR, (e, d) => {
+      if (d.fatal) status.textContent = '❌ HLS error: ' + d.type;
+    });
+  } else if (isHls && vid.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari native HLS
+    badge.textContent = 'HLS (Safari)';
+    vid.src = url;
+    vid.play().catch(()=>{});
+    status.textContent = 'HLS nativo';
+  } else {
+    // Direct MP4 / WebM / audio
+    const ext = (fileName || url).split('.').pop().toLowerCase();
+    badge.textContent = ext.toUpperCase();
+    vid.src = url;
+    vid.play().catch(()=>{});
+    status.textContent = isAudio ? 'Áudio' : 'Reproduzindo';
+  }
+}
+
+function switchQuality(val) {
+  if (hlsInstance && !isNaN(parseInt(val))) {
+    hlsInstance.currentLevel = parseInt(val);
+  } else if (val && val.startsWith('http')) {
+    // Non-HLS quality switch: just reload with new URL
+    const vid = document.getElementById('player-vid');
+    const time = vid.currentTime;
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    vid.src = val;
+    vid.currentTime = time;
+    vid.play().catch(()=>{});
+  }
+}
+
+function closePlayer() {
+  const vid = document.getElementById('player-vid');
+  vid.pause();
+  vid.src = '';
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  document.getElementById('player-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closePlayerOnBg(e) {
+  if (e.target === document.getElementById('player-overlay')) closePlayer();
+}
+
+async function togglePiP() {
+  const vid = document.getElementById('player-vid');
+  try {
+    if (document.pictureInPictureElement) await document.exitPictureInPicture();
+    else await vid.requestPictureInPicture();
+  } catch(e) {
+    document.getElementById('player-status').textContent = 'PiP não suportado';
+  }
+}
+
+function toggleFullscreen() {
+  const wrap = document.getElementById('player-wrap');
+  if (!document.fullscreenElement) wrap.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+async function copyPlayerUrl() {
+  if (!currentPlayerUrl) return;
+  await navigator.clipboard.writeText(currentPlayerUrl).catch(()=>{});
+  document.getElementById('player-status').textContent = '📋 URL copiada!';
+}
+
+// ESC to close player
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
 
 // ===================== INIT =====================
 loadTokens();

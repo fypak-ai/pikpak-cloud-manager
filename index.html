@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="pragma" content="no-cache"/>
+<meta http-equiv="expires" content="0"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>PikPak Cloud Manager</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
@@ -605,7 +608,7 @@ async function doAutoLogin() {
       grant_type: 'refresh_token', refresh_token: STATE.refreshToken
     })
   });
-  if (r.status !== 200) { loadTokens(); updateStatusBar(); return; }
+  if (r.status !== 200) { loadTokens(); updateStatusBar(); showMsg('login-msg','warn','⚠️ Sessão expirada. Faça login novamente.'); return; }
   const resp = await r.json();
   if (resp.error_code && resp.error_code !== 0) { updateStatusBar(); return; }
   STATE.accessToken  = resp.access_token  || STATE.accessToken;
@@ -678,7 +681,7 @@ async function listFiles(folderId, pageToken='') {
   }
   currentFolderId = folderId || '';
   if (!pageToken) { STATE.allFiles = []; STATE.nextPageToken = ''; }
-  showMsg('cloud-msg','info','<span class="spin"></span> Carregando...');
+  showMsg('cloud-msg','info','<span class="spin"></span> Carregando arquivos...');
 
   const params = new URLSearchParams({
     parent_id: currentFolderId,
@@ -723,7 +726,7 @@ async function listFiles(folderId, pageToken='') {
 
 function renderFileList() {
   const container = document.getElementById('file-list');
-  if (!STATE.allFiles.length) { container.innerHTML = '<p style="color:var(--muted);font-size:.82rem;">Pasta vazia.</p>'; return; }
+  if (!STATE.allFiles.length) { container.innerHTML = '<p style="color:var(--muted);font-size:.85rem;">📂 Pasta vazia. <a href="#" onclick="listFiles(currentFolderId);return false;" style="color:var(--accent)">Tentar novamente</a></p>'; return; }
   container.innerHTML = '';
   for (const f of STATE.allFiles) {
     const isFolder = f.kind === 'drive#folder';

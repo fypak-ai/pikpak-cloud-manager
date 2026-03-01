@@ -1,97 +1,494 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PikPak Cloud Manager — Instalação</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0d0d1a; color: #e0e0f0; font-family: 'Segoe UI', sans-serif; }
-  header { background: linear-gradient(135deg, #1a0a3a, #0a1a3a); padding: 60px 20px; text-align: center; }
-  header h1 { font-size: 2.4rem; background: linear-gradient(90deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  header p { color: #9ca3af; margin-top: 12px; font-size: 1.1rem; }
-  .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-  h2 { color: #a78bfa; margin: 32px 0 16px; font-size: 1.3rem; }
-  p { color: #c0c0d8; line-height: 1.7; margin-bottom: 12px; }
-  .step { background: #12122a; border-left: 4px solid #7c3aed; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
-  .step-num { color: #7c3aed; font-weight: bold; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 6px; }
-  .step h3 { color: #e0e0f0; font-size: 1rem; margin-bottom: 8px; }
-  pre { background: #1a1a2e; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 10px 0; }
-  code { font-family: 'Consolas', monospace; font-size: 0.88rem; color: #7dd3fc; }
-  .badge { display: inline-block; background: #1e3a5f; color: #60a5fa; border-radius: 99px; padding: 4px 14px; font-size: 0.8rem; margin: 4px 4px 4px 0; }
-  .note { background: #1a1a2e; border: 1px solid #374151; border-radius: 8px; padding: 16px 20px; margin: 20px 0; color: #9ca3af; font-size: 0.9rem; }
-  footer { text-align: center; padding: 40px; color: #4b5563; font-size: 0.85rem; }
-  a { color: #60a5fa; text-decoration: none; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PikPak Cloud Manager</title>
+  <style>
+    :root {
+      --purple: #7c3aed;
+      --purple-light: #a855f7;
+      --blue: #2563eb;
+      --blue-light: #60a5fa;
+      --bg: #0f0c1a;
+      --bg2: #15112a;
+      --bg3: #1e1836;
+      --card: #1c1733;
+      --border: #2e2650;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --green: #22c55e;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(15,12,26,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.1rem; font-weight: 700;
+      background: linear-gradient(90deg, var(--purple-light), var(--blue-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-logo svg { width: 28px; height: 28px; fill: var(--purple-light); }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff; border: none; border-radius: 8px;
+      padding: 8px 18px; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; text-decoration: none; transition: opacity 0.2s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; text-align: center;
+      padding: 100px 2rem 60px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124,58,237,0.35) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 60%, rgba(37,99,235,0.2) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 999px; padding: 6px 16px;
+      font-size: 0.8rem; color: var(--purple-light); font-weight: 600;
+      margin-bottom: 1.5rem; letter-spacing: 0.05em;
+    }
+    .hero-badge::before { content: '\25CF'; font-size: 0.5rem; color: var(--green); }
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800; line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+    h1 span {
+      background: linear-gradient(135deg, var(--purple-light), var(--blue-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--muted); max-width: 560px; line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 3.5rem; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff; border: none; border-radius: 12px;
+      padding: 14px 28px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      box-shadow: 0 0 30px rgba(124,58,237,0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 45px rgba(124,58,237,0.6); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 28px;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-secondary:hover { background: var(--bg3); border-color: var(--purple); }
+    .mockup-wrapper {
+      width: 100%; max-width: 900px;
+      border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.2);
+      background: var(--card);
+    }
+    .mockup-bar {
+      background: var(--bg2); padding: 12px 16px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .mockup-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .mockup-dot.red { background: #ff5f57; }
+    .mockup-dot.yellow { background: #ffbd2e; }
+    .mockup-dot.green { background: #28c840; }
+    .mockup-url {
+      flex: 1; background: var(--bg3); border-radius: 6px;
+      padding: 4px 12px; font-size: 0.75rem; color: var(--muted);
+      margin: 0 12px; text-align: center; font-family: monospace;
+    }
+    .mockup-body {
+      display: grid; grid-template-columns: 200px 1fr; min-height: 380px;
+    }
+    .mockup-sidebar {
+      background: var(--bg2); border-right: 1px solid var(--border);
+      padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 6px;
+    }
+    .mockup-sidebar-title {
+      font-size: 0.65rem; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--muted);
+      margin-bottom: 8px; padding-left: 8px;
+    }
+    .mockup-tab {
+      border-radius: 8px; padding: 9px 12px; font-size: 0.8rem;
+      color: var(--muted); cursor: default;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .mockup-tab.active {
+      background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(37,99,235,0.2));
+      color: var(--text); border: 1px solid rgba(124,58,237,0.3);
+    }
+    .mockup-tab span { font-size: 1rem; }
+    .mockup-main { padding: 1.25rem; display: flex; flex-direction: column; gap: 10px; }
+    .mockup-header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .mockup-title-text { font-size: 0.9rem; font-weight: 700; }
+    .mockup-badge {
+      background: rgba(34,197,94,0.15); color: var(--green);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 999px; padding: 3px 10px; font-size: 0.7rem; font-weight: 600;
+    }
+    .mockup-input-row { display: flex; gap: 8px; }
+    .mockup-input {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; font-size: 0.78rem; color: var(--muted);
+    }
+    .mockup-btn {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff; border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 0.78rem; font-weight: 600; cursor: default; white-space: nowrap;
+    }
+    .mockup-file {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .mockup-file-icon { font-size: 1.2rem; }
+    .mockup-file-info { flex: 1; }
+    .mockup-file-name { font-size: 0.8rem; font-weight: 600; }
+    .mockup-file-size { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .mockup-file-actions { display: flex; gap: 6px; }
+    .mockup-file-btn {
+      background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3);
+      color: var(--purple-light); border-radius: 6px; padding: 4px 10px; font-size: 0.7rem; cursor: default;
+    }
+    .mockup-progress-bar { background: var(--bg3); border-radius: 999px; height: 4px; margin-top: 4px; }
+    .mockup-progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--purple), var(--blue)); width: 68%;
+    }
+    .section { padding: 80px 2rem; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      text-align: center; font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      color: var(--purple-light); margin-bottom: 12px;
+    }
+    .section-title { text-align: center; font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: 16px; }
+    .section-sub { text-align: center; color: var(--muted); max-width: 500px; margin: 0 auto 3rem; line-height: 1.7; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem;
+      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--purple), var(--blue));
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-card:hover { border-color: rgba(124,58,237,0.5); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 1rem;
+    }
+    .icon-purple { background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3); }
+    .icon-blue { background: rgba(37,99,235,0.2); border: 1px solid rgba(37,99,235,0.3); }
+    .icon-green { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.25); }
+    .icon-pink { background: rgba(236,72,153,0.15); border: 1px solid rgba(236,72,153,0.25); }
+    .icon-orange { background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.25); }
+    .icon-cyan { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.25); }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+    .feature-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .tag { background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 0.72rem; color: var(--muted); }
+    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+    .step-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }
+    .step-number {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      font-size: 0.9rem; font-weight: 800; margin-bottom: 1rem; color: #fff;
+    }
+    .step-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .step-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+    .step-code {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+      font-family: monospace; font-size: 0.78rem; color: var(--purple-light);
+      margin-top: 12px; word-break: break-all;
+    }
+    .cta-section {
+      background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 80px 2rem; text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(124,58,237,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800; margin-bottom: 1rem; }
+    .cta-section p { color: var(--muted); max-width: 480px; margin: 0 auto 2rem; line-height: 1.7; }
+    .token-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem 1.5rem;
+      display: flex; align-items: flex-start; gap: 14px; max-width: 560px;
+    }
+    .token-icon { font-size: 1.5rem; margin-top: 2px; }
+    .token-box h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+    .token-box p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .info-grid { display: flex; flex-direction: column; gap: 1rem; align-items: center; margin-top: 1.5rem; }
+    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 2.5rem 2rem; text-align: center; }
+    .footer-logo {
+      font-size: 1.1rem; font-weight: 700;
+      background: linear-gradient(90deg, var(--purple-light), var(--blue-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+    }
+    footer p { font-size: 0.8rem; color: var(--muted); }
+    footer a { color: var(--purple-light); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .divider { height: 1px; background: var(--border); max-width: 1100px; margin: 0 auto; }
+    @media (max-width: 640px) {
+      .mockup-body { grid-template-columns: 1fr; }
+      .mockup-sidebar { display: none; }
+      .nav-links { display: none; }
+    }
+  </style>
 </head>
 <body>
-<header>
-  <h1>PikPak Cloud Manager</h1>
-  <p>Gerencie seus arquivos PikPak direto do navegador</p>
-  <div style="margin-top:20px">
-    <span class="badge">Python + Flask</span>
-    <span class="badge">Windows</span>
-    <span class="badge">Dark Mode</span>
-    <span class="badge">Dropbox</span>
+
+<nav>
+  <div class="nav-logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+    </svg>
+    PikPak Manager
   </div>
-</header>
-
-<div class="container">
-
-  <h2>📦 Instalação</h2>
-  <p>Siga os passos abaixo no <strong>PowerShell</strong> do Windows.</p>
-
-  <div class="step">
-    <div class="step-num">Passo 1 — Requisito</div>
-    <h3>Instale o Python 3.10+</h3>
-    <p>Baixe em <a href="https://python.org/downloads" target="_blank">python.org/downloads</a> e marque <strong>"Add Python to PATH"</strong> durante a instalação.</p>
+  <div class="nav-links">
+    <a href="#features">Recursos</a>
+    <a href="#como-usar">Como usar</a>
+    <a href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">GitHub</a>
   </div>
+  <a class="nav-cta" href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">&#11015; Download</a>
+</nav>
 
-  <div class="step">
-    <div class="step-num">Passo 2 — Criar pasta e baixar arquivos</div>
-    <h3>Abra o PowerShell e rode:</h3>
-    <pre><code>mkdir C:\PikPakManager
-cd C:\PikPakManager
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/pikpak_extractor.py" -OutFile "pikpak_extractor.py"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/v7_template.html" -OutFile "v7_template.html"</code></pre>
+<section class="hero">
+  <div class="hero-badge">v7 &middot; Stable &middot; Open Source</div>
+  <h1>Gerencie sua nuvem<br /><span>PikPak sem limites</span></h1>
+  <p class="hero-sub">
+    Extraia links de compartilhamentos, navegue pelos seus arquivos e transfira tudo pro Dropbox direto do seu navegador &mdash; sem instalar nada al&eacute;m do Python.
+  </p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">&#11015; Baixar agora</a>
+    <a class="btn-secondary" href="#como-usar">&#9654; Como funciona</a>
   </div>
-
-  <div class="step">
-    <div class="step-num">Passo 3 — Instalar dependências</div>
-    <pre><code>pip install flask requests</code></pre>
+  <div class="mockup-wrapper">
+    <div class="mockup-bar">
+      <div class="mockup-dot red"></div>
+      <div class="mockup-dot yellow"></div>
+      <div class="mockup-dot green"></div>
+      <div class="mockup-url">&#9729; PikPak Cloud Manager &middot; localhost:5000</div>
+    </div>
+    <div class="mockup-body">
+      <div class="mockup-sidebar">
+        <div class="mockup-sidebar-title">NAVEGA&Ccedil;&Atilde;O</div>
+        <div class="mockup-tab active"><span>&#9729;</span> Minha Nuvem</div>
+        <div class="mockup-tab"><span>&#128279;</span> Links Compartilhados</div>
+        <div class="mockup-tab"><span>&#128228;</span> Dropbox</div>
+        <div class="mockup-sidebar-title" style="margin-top:16px;">CONTA</div>
+        <div class="mockup-tab active"><span>&#9679;</span> Conectado</div>
+      </div>
+      <div class="mockup-main">
+        <div class="mockup-header-bar">
+          <div class="mockup-title-text">&#9729; Minha Nuvem &mdash; /Filmes</div>
+          <div class="mockup-badge">&#10003; Online</div>
+        </div>
+        <div class="mockup-input-row">
+          <div class="mockup-input">mypikpak.com/s/VCmZhSRk...</div>
+          <div class="mockup-btn">Extrair Links</div>
+        </div>
+        <div class="mockup-file">
+          <div class="mockup-file-icon">&#127916;</div>
+          <div class="mockup-file-info">
+            <div class="mockup-file-name">Interstellar.2014.2160p.mkv</div>
+            <div class="mockup-file-size">58.3 GB &middot; Drive</div>
+            <div class="mockup-progress-bar"><div class="mockup-progress-fill"></div></div>
+          </div>
+          <div class="mockup-file-actions">
+            <div class="mockup-file-btn">&#11015;</div>
+            <div class="mockup-file-btn">&#128228;</div>
+          </div>
+        </div>
+        <div class="mockup-file">
+          <div class="mockup-file-icon">&#127916;</div>
+          <div class="mockup-file-info">
+            <div class="mockup-file-name">Oppenheimer.2023.4K.mkv</div>
+            <div class="mockup-file-size">42.1 GB &middot; Drive</div>
+          </div>
+          <div class="mockup-file-actions">
+            <div class="mockup-file-btn">&#11015;</div>
+            <div class="mockup-file-btn">&#128228;</div>
+          </div>
+        </div>
+        <div class="mockup-file">
+          <div class="mockup-file-icon">&#128193;</div>
+          <div class="mockup-file-info">
+            <div class="mockup-file-name">Series 2024</div>
+            <div class="mockup-file-size">12 arquivos &middot; Pasta</div>
+          </div>
+          <div class="mockup-file-actions">
+            <div class="mockup-file-btn">&#128194;</div>
+            <div class="mockup-file-btn">&#128228;</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+</section>
 
-  <div class="step">
-    <div class="step-num">Passo 4 — Iniciar o app</div>
-    <pre><code>python pikpak_extractor.py</code></pre>
-    <p style="margin-top:8px">Acesse no navegador: <strong>http://localhost:5000</strong></p>
+<div class="divider"></div>
+<section class="section" id="features">
+  <div class="section-label">Recursos</div>
+  <h2 class="section-title">Tudo que voc&ecirc; precisa</h2>
+  <p class="section-sub">Funcionalidades completas para gerenciar, extrair e transferir seus arquivos PikPak.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon icon-purple">&#128279;</div>
+      <h3>Extra&ccedil;&atilde;o de Links Compartilhados</h3>
+      <p>Cole qualquer URL <code>mypikpak.com/s/...</code> e extraia todos os links de download em segundos &mdash; pastas inteiras ou arquivos &uacute;nicos.</p>
+      <div class="feature-tags"><span class="tag">Pasta</span><span class="tag">Arquivo &uacute;nico</span><span class="tag">Magnet links</span></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon icon-blue">&#9729;</div>
+      <h3>Minha Nuvem</h3>
+      <p>Navegue pelos seus arquivos PikPak com breadcrumb, sele&ccedil;&atilde;o m&uacute;ltipla e a&ccedil;&otilde;es em lote. Login via Access Token (sem senha).</p>
+      <div class="feature-tags"><span class="tag">Breadcrumb</span><span class="tag">Multi-sele&ccedil;&atilde;o</span><span class="tag">Auto-login</span></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon icon-green">&#128228;</div>
+      <h3>Transfer&ecirc;ncia para Dropbox</h3>
+      <p>Envie arquivos selecionados diretamente para o Dropbox com barra de progresso em 2 fases e tratamento de erros por arquivo.</p>
+      <div class="feature-tags"><span class="tag">Envio em massa</span><span class="tag">Progresso</span><span class="tag">Retry</span></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon icon-pink">&#128272;</div>
+      <h3>Auth Autom&aacute;tica</h3>
+      <p>Salva o <code>refresh_token</code> e renova o <code>access_token</code> silenciosamente. Login uma vez &mdash; o app cuida do resto.</p>
+      <div class="feature-tags"><span class="tag">refresh_token</span><span class="tag">Auto-renova&ccedil;&atilde;o</span></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon icon-orange">&#128203;</div>
+      <h3>Copiar e Baixar</h3>
+      <p>Bot&otilde;es individuais de Download e Copiar link para cada arquivo, al&eacute;m de &ldquo;Copiar Todos&rdquo; para exportar todos os links de uma vez.</p>
+      <div class="feature-tags"><span class="tag">Copiar link</span><span class="tag">Copiar todos</span><span class="tag">Download direto</span></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon icon-cyan">&#128065;</div>
+      <h3>Visualizador de Texto</h3>
+      <p>Visualize arquivos de texto e conte&uacute;do magnet diretamente no app, sem precisar baixar antes.</p>
+      <div class="feature-tags"><span class="tag">.txt</span><span class="tag">Magnet</span><span class="tag">Preview</span></div>
+    </div>
   </div>
+</section>
 
-  <h2>🔄 Atualizar</h2>
-  <div class="step">
-    <pre><code>cd C:\PikPakManager
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/pikpak_extractor.py" -OutFile "pikpak_extractor.py"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/v7_template.html" -OutFile "v7_template.html"
-python pikpak_extractor.py</code></pre>
+<div class="divider"></div>
+<section class="section" id="como-usar">
+  <div class="section-label">Instala&ccedil;&atilde;o</div>
+  <h2 class="section-title">Rodando em 4 passos</h2>
+  <p class="section-sub">S&oacute; precisa do Python instalado. Nenhuma configura&ccedil;&atilde;o complicada.</p>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-number">1</div>
+      <h3>Instale o Python</h3>
+      <p>Baixe em <a href="https://python.org/downloads" target="_blank" style="color:var(--purple-light)">python.org</a> e marque <strong>&ldquo;Add Python to PATH&rdquo;</strong> durante a instala&ccedil;&atilde;o.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-number">2</div>
+      <h3>Baixe os arquivos</h3>
+      <p>Salve os dois arquivos em <code>C:\PikPakManager</code></p>
+      <div class="step-code">curl.exe -o pikpak_extractor.py https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/pikpak_extractor.py</div>
+    </div>
+    <div class="step-card">
+      <div class="step-number">3</div>
+      <h3>Instale depend&ecirc;ncias</h3>
+      <p>Abra o terminal na pasta e rode:</p>
+      <div class="step-code">pip install flask requests</div>
+    </div>
+    <div class="step-card">
+      <div class="step-number">4</div>
+      <h3>Inicie o app</h3>
+      <p>Execute e acesse em <code>localhost:5000</code></p>
+      <div class="step-code">python pikpak_extractor.py</div>
+    </div>
   </div>
+</section>
 
-  <h2>🚀 Funcionalidades</h2>
-  <div class="step"><h3>🔗 Link Compartilhado</h3><p>Cole uma URL <code>mypikpak.com/s/...</code> e extraia todos os links de download — incluindo arquivos únicos com conteúdo magnet.</p></div>
-  <div class="step"><h3>☁️ Minha Nuvem</h3><p>Navegue pelos seus arquivos PikPak com login via Access Token. Suporte a breadcrumb e seleção múltipla.</p></div>
-  <div class="step"><h3>📤 Envio para Dropbox</h3><p>Selecione arquivos e envie em massa para o Dropbox com barra de progresso.</p></div>
-
-  <h2>🔑 Como obter o Access Token</h2>
-  <div class="note">
-    1. Abra o PikPak Web → pressione <strong>F12</strong> → aba <strong>Network</strong><br>
-    2. Filtre por <code>api/v1</code> e copie o header <code>Authorization: Bearer XXX</code><br>
-    3. Cole o token no app
+<div class="divider"></div>
+<section class="section">
+  <div class="section-label">Dica</div>
+  <h2 class="section-title">Como obter o Access Token</h2>
+  <p class="section-sub">O login via token &eacute; mais est&aacute;vel que email/senha &mdash; sem captcha, sem bloqueio.</p>
+  <div class="info-grid">
+    <div class="token-box">
+      <div class="token-icon">&#128273;</div>
+      <div>
+        <h4>Extraindo pelo DevTools</h4>
+        <p>Abra <strong>mypikpak.com</strong> &rarr; F12 &rarr; aba <strong>Network</strong> &rarr; clique em qualquer pasta &rarr; encontre um request com <code>api-drive</code> &rarr; copie o header <code>Authorization: Bearer eyJ...</code></p>
+      </div>
+    </div>
+    <div class="token-box">
+      <div class="token-icon">&#128190;</div>
+      <div>
+        <h4>Token salvo automaticamente</h4>
+        <p>Ap&oacute;s o primeiro login, o app salva o <code>refresh_token</code> em <code>pikpak_tokens.json</code>. Na pr&oacute;xima vez, reconecta sozinho sem precisar colar o token de novo.</p>
+      </div>
+    </div>
   </div>
+</section>
 
-  <div style="text-align:center;margin-top:40px">
-    <a href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;padding:14px 32px;border-radius:8px;font-weight:bold;display:inline-block">Ver no GitHub</a>
+<div class="cta-section">
+  <h2>Pronto para come&ccedil;ar?</h2>
+  <p>Open source, gratuito, roda localmente. Seus arquivos ficam no seu computador.</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <a class="btn-primary" href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">&#11015; Ver no GitHub</a>
+    <a class="btn-secondary" href="https://github.com/fypak-ai/pikpak-cloud-manager/archive/refs/heads/main.zip" target="_blank">&#128230; Baixar ZIP</a>
   </div>
-
 </div>
-<footer>fypak-ai · PikPak Cloud Manager</footer>
+
+<footer>
+  <div class="footer-logo">&#9729; PikPak Cloud Manager</div>
+  <p>Open source &middot; <a href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">github.com/fypak-ai/pikpak-cloud-manager</a></p>
+</footer>
+
 </body>
 </html>

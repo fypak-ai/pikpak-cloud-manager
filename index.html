@@ -100,6 +100,7 @@ select.inp option{background:var(--bg3);}
   <div class="nav-tab active" onclick="switchTab('cloud')" id="tab-cloud">☁ Minha Nuvem</div>
   <div class="nav-tab" onclick="switchTab('share')" id="tab-share">🔗 Compartilhado</div>
   <div class="nav-tab" onclick="switchTab('dropbox')" id="tab-dropbox">📤 Dropbox</div>
+  <div class="nav-tab" onclick="switchTab('proxy')" id="tab-proxy">⚙️ Proxy</div>
 </nav>
 
 <div class="main">
@@ -114,9 +115,10 @@ select.inp option{background:var(--bg3);}
     <span id="status-text">Desconectado</span>
   </div>
   <div class="sidebar-item btn-danger" id="menu-logout" onclick="logout()" style="display:none;">🚪 Sair</div>
+  <div class="sidebar-item" onclick="showProxyPanel()" id="menu-proxy">⚙️ Proxy URL</div>
   <div class="sidebar-status">
-    <div style="margin-bottom:4px;font-size:.7rem;color:var(--muted);">GitHub Pages — client-side only</div>
-    <div style="font-size:.7rem;color:var(--border);">Tokens salvos no browser</div>
+    <div id="proxy-indicator" style="font-size:.7rem;color:var(--red);">⚠️ Proxy não configurado</div>
+    <div style="font-size:.7rem;color:var(--border);margin-top:2px;">Tokens salvos no browser</div>
   </div>
 </div>
 
@@ -234,17 +236,56 @@ select.inp option{background:var(--bg3);}
     </div>
   </div>
 
+
+  <!-- PROXY CONFIG PANEL -->
+  <div class="panel" id="panel-proxy">
+    <div class="card">
+      <h3>⚙️ URL do Proxy (Railway)</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:.75rem;">
+        Cole aqui a URL do seu deploy no Railway.<br/>
+        Exemplo: <code style="color:var(--blue-l)">https://pikpak-cloud-manager-production.up.railway.app</code>
+      </p>
+      <div class="form-row">
+        <input class="inp" id="inp-proxy-url" placeholder="https://seu-app.up.railway.app" />
+      </div>
+      <div class="form-row">
+        <button class="btn btn-primary" onclick="saveProxyUrl()">💾 Salvar</button>
+        <button class="btn btn-secondary" onclick="testProxy()">🔌 Testar</button>
+        <button class="btn btn-danger btn-sm" onclick="clearProxy()">🗑 Limpar</button>
+      </div>
+      <div id="proxy-msg"></div>
+    </div>
+    <div class="card">
+      <h3>📋 Como fazer deploy no Railway</h3>
+      <ol style="font-size:.8rem;color:var(--muted);line-height:1.8;padding-left:1.2rem;">
+        <li>Acesse <a href="https://railway.app" target="_blank" style="color:var(--blue-l)">railway.app</a> e faça login com GitHub</li>
+        <li>Clique em <strong style="color:var(--text)">New Project → Deploy from GitHub repo</strong></li>
+        <li>Selecione <strong style="color:var(--text)">fypak-ai/pikpak-cloud-manager</strong></li>
+        <li>Railway detecta automaticamente o Python e faz o deploy</li>
+        <li>Após o deploy, copie a URL gerada e cole acima</li>
+      </ol>
+    </div>
+  </div>
+
 </div><!-- /content-area -->
 </div><!-- /main -->
 
 <script>
 // ===================== CONSTANTS =====================
+// PROXY: Flask backend on Railway. All /api/* calls go here.
+// Direct PikPak URLs kept as fallback reference only.
+const PROXY_BASE = localStorage.getItem('proxy_url') || '';
 const API_USER   = 'https://user.mypikpak.net';
 const API_DRIVE  = 'https://api-drive.mypikpak.net';
 const CLIENT_ID  = 'YUMx5nI8ZU8Ap8pm';
 const CLIENT_SECRET = 'dbw2OtmVEeuUvIptb1Coyg';
 const CLIENT_VER = '2.0.0';
 const PKG_NAME   = 'mypikpak.com';
+function apiUrl(path) {
+  // Use proxy if configured, else try direct (will CORS-fail without proxy)
+  const base = localStorage.getItem('proxy_url') || '';
+  return base ? base.replace(/\/$/, '') + path : null;
+}
 const ALGORITHMS = [
   'C9qPpZLN8ucRTaTiUMWYS9cQvWOE','+r6CQVxjzJV6LCV','F','pFJRC',
   '9WXYIDGrwTCz2OiVlgZa90qpECPD6olt','/750aCr4lm/Sly/c','RB+DT/gZCrbV','',
@@ -252,6 +293,27 @@ const ALGORITHMS = [
   '1UI3','E7fP5Pfijd+7K+t6Tg/NhuLq0eEUVChpJSkrKxpO',
   'ihtqpG6FMt65+Xk+tWUH2','NhXXU9rg4XXdzo7u5o'
 ];
+
+
+// ===================== PROXY FETCH =====================
+// Routes requests through Flask proxy (Railway) to avoid CORS
+async function proxyFetch(url, options = {}) {
+  const proxyBase = localStorage.getItem('proxy_url') || '';
+  if (!proxyBase) {
+    // No proxy configured — try direct (will likely CORS-fail)
+    return fetch(url, options);
+  }
+  // Route through proxy: POST to /api/proxy with {url, method, headers, body}
+  const method = options.method || 'GET';
+  const headers = options.headers || {};
+  const body = options.body || null;
+  const proxyResp = await fetch(proxyBase.replace(/\/$/, '') + '/api/proxy', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ url, method, headers, body: body ? (typeof body === 'string' ? body : body) : null })
+  });
+  return proxyResp;
+}
 
 // ===================== STATE =====================
 let STATE = {
@@ -333,7 +395,7 @@ async function captchaInitForLogin(username) {
     redirect_uri: 'xlaccsdk01://xbase.cloud/callback?state=harbor',
   };
   try {
-    const r = await fetch(`${API_USER}/v1/shield/captcha/init?client_id=${CLIENT_ID}`, {
+    const r = await proxyFetch(`${API_USER}/v1/shield/captcha/init?client_id=${CLIENT_ID}`, {
       method: 'POST',
       headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0','X-Device-ID': STATE.deviceId},
       body: JSON.stringify(body)
@@ -360,7 +422,7 @@ async function captchaInitForAction(action, userId='', existingToken='') {
     redirect_uri: 'xlaccsdk01://xbase.cloud/callback?state=harbor',
   };
   try {
-    const r = await fetch(`${API_USER}/v1/shield/captcha/init?client_id=${CLIENT_ID}`, {
+    const r = await proxyFetch(`${API_USER}/v1/shield/captcha/init?client_id=${CLIENT_ID}`, {
       method: 'POST',
       headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0','X-Device-ID': STATE.deviceId},
       body: JSON.stringify(body)
@@ -412,7 +474,7 @@ async function loginWithToken() {
 
   let r;
   try {
-    r = await fetch(`${API_DRIVE}/drive/v1/about`, {
+    r = await proxyFetch(`${API_DRIVE}/drive/v1/about`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'X-Device-ID': STATE.deviceId,
@@ -487,7 +549,7 @@ async function doSignin(username, password, captchaToken) {
     client_secret: CLIENT_SECRET,
     username, password,
   };
-  const r = await fetch(`${API_USER}/v1/auth/signin?client_id=${CLIENT_ID}`, {
+  const r = await proxyFetch(`${API_USER}/v1/auth/signin?client_id=${CLIENT_ID}`, {
     method: 'POST',
     headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0',
               'X-Device-ID': STATE.deviceId,'X-Captcha-Token': captchaToken||''},
@@ -521,7 +583,7 @@ async function doSignin(username, password, captchaToken) {
 
 async function doAutoLogin() {
   if (!STATE.refreshToken) return;
-  const r = await fetch(`${API_USER}/v1/auth/token?client_id=${CLIENT_ID}`, {
+  const r = await proxyFetch(`${API_USER}/v1/auth/token?client_id=${CLIENT_ID}`, {
     method: 'POST',
     headers: {'Content-Type':'application/json','User-Agent':'','X-Device-ID': STATE.deviceId},
     body: JSON.stringify({
@@ -541,7 +603,7 @@ async function doAutoLogin() {
 
 async function refreshIfNeeded() {
   if (!STATE.refreshToken) return false;
-  const r = await fetch(`${API_USER}/v1/auth/token?client_id=${CLIENT_ID}`, {
+  const r = await proxyFetch(`${API_USER}/v1/auth/token?client_id=${CLIENT_ID}`, {
     method: 'POST',
     headers: {'Content-Type':'application/json','User-Agent':'','X-Device-ID': STATE.deviceId},
     body: JSON.stringify({
@@ -616,7 +678,7 @@ async function listFiles(folderId, pageToken='') {
   let headers = await getHeaders();
   let r;
   try {
-    r = await fetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers});
+    r = await proxyFetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers});
   } catch(corsErr) {
     showMsg('cloud-msg','error','❌ CORS bloqueado pela API PikPak. O browser não permite chamadas diretas. <br/>💡 <strong>Solução:</strong> use a versão local (Python) ou aguarde deploy do proxy.');
     return;
@@ -624,7 +686,7 @@ async function listFiles(folderId, pageToken='') {
 
   if (r.status === 401 || r.status === 403) {
     const ok = await refreshIfNeeded();
-    if (ok) { headers = await getHeaders(); r = await fetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers}); }
+    if (ok) { headers = await getHeaders(); r = await proxyFetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers}); }
   }
 
   if (r.status !== 200) {
@@ -718,7 +780,7 @@ function updateBreadcrumb() {
 async function getFileLink(fileId, fileName) {
   if (!STATE.accessToken) return showMsg('cloud-msg','warn','Login necessário');
   const headers = await getHeaders();
-  const r = await fetch(`${API_DRIVE}/drive/v1/files/${fileId}?thumbnail_size=SIZE_LARGE`, {headers});
+  const r = await proxyFetch(`${API_DRIVE}/drive/v1/files/${fileId}?thumbnail_size=SIZE_LARGE`, {headers});
   if (r.status !== 200) { showMsg('cloud-msg','error',`Erro HTTP ${r.status}`); return; }
   const data = await r.json();
   const links = [];
@@ -761,7 +823,7 @@ async function extractShare() {
     if (passCode)  params.set('pass_code_token', passCode);
     if (pageToken) params.set('page_token', pageToken);
 
-    const r = await fetch(`${API_DRIVE}/drive/v1/share/detail?${params}`, {headers});
+    const r = await proxyFetch(`${API_DRIVE}/drive/v1/share/detail?${params}`, {headers});
     if (r.status !== 200) {
       const e = await r.json().catch(()=>({}));
       showMsg('share-msg','error',`HTTP ${r.status}: ${e.error_description || e.error || ''}`);
@@ -837,7 +899,7 @@ async function getShareLink(fileId, fileName) {
   const params = new URLSearchParams({share_id: STATE.shareId, file_id: fileId, thumbnail_size:'SIZE_LARGE'});
   if (passCode) params.set('pass_code_token', passCode);
   const headers = {'X-Device-ID': STATE.deviceId,'X-Client-ID': CLIENT_ID,'X-Client-Version': CLIENT_VER};
-  const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+  const r = await proxyFetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
   if (r.status !== 200) { showMsg('share-msg','error',`HTTP ${r.status}`); return; }
   const data = await r.json();
   const fi = data.file_info || data;
@@ -855,7 +917,7 @@ async function copyShareLink(fileId, fileName) {
   const params = new URLSearchParams({share_id: STATE.shareId, file_id: fileId, thumbnail_size:'SIZE_LARGE'});
   if (passCode) params.set('pass_code_token', passCode);
   const headers = {'X-Device-ID': STATE.deviceId,'X-Client-ID': CLIENT_ID,'X-Client-Version': CLIENT_VER};
-  const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+  const r = await proxyFetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
   if (r.status !== 200) { showMsg('share-msg','error',`HTTP ${r.status}`); return; }
   const data = await r.json();
   const fi = data.file_info || data;
@@ -877,7 +939,7 @@ async function copyAllLinks() {
     const params = new URLSearchParams({share_id: STATE.shareId, file_id: f.id, thumbnail_size:'SIZE_LARGE'});
     if (passCode) params.set('pass_code_token', passCode);
     try {
-      const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+      const r = await proxyFetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
       if (r.status !== 200) continue;
       const data = await r.json();
       const fi = data.file_info || data;
@@ -961,7 +1023,7 @@ async function sendFilesToDropbox(files, source) {
         const params = new URLSearchParams({share_id: STATE.shareId, file_id: f.id, thumbnail_size:'SIZE_LARGE'});
         if (passCode) params.set('pass_code_token', passCode);
         const headers = {'X-Device-ID':STATE.deviceId,'X-Client-ID':CLIENT_ID,'X-Client-Version':CLIENT_VER};
-        const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+        const r = await proxyFetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
         if (r.status === 200) {
           const data = await r.json();
           const fi = data.file_info || data;
@@ -970,7 +1032,7 @@ async function sendFilesToDropbox(files, source) {
         }
       } else {
         const h = await getHeaders();
-        const r = await fetch(`${API_DRIVE}/drive/v1/files/${f.id}?thumbnail_size=SIZE_LARGE`, {headers:h});
+        const r = await proxyFetch(`${API_DRIVE}/drive/v1/files/${f.id}?thumbnail_size=SIZE_LARGE`, {headers:h});
         if (r.status === 200) {
           const data = await r.json();
           for (const m of (data.medias||[])) { const l=m.link||{}; if(l.url){dlUrl=l.url;break;} }
@@ -1024,7 +1086,8 @@ function showPanel(panelId) {
 
 function switchTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`tab-${tab}`).classList.add('active');
+  const tabEl = document.getElementById(`tab-${tab}`);
+  if (tabEl) tabEl.classList.add('active');
   showPanel(`panel-${tab}`);
 }
 
@@ -1075,6 +1138,63 @@ function getFileIcon(name) {
   };
   return icons[ext] || '📄';
 }
+
+
+// ===================== PROXY CONFIG =====================
+function showProxyPanel() {
+  switchTab('proxy');
+}
+
+function saveProxyUrl() {
+  const url = document.getElementById('inp-proxy-url').value.trim().replace(/\/$/, '');
+  if (!url) return showMsg('proxy-msg', 'error', 'URL vazia');
+  localStorage.setItem('proxy_url', url);
+  updateProxyIndicator();
+  showMsg('proxy-msg', 'success', '✅ URL salva! Recarregue e tente o login.');
+}
+
+function clearProxy() {
+  localStorage.removeItem('proxy_url');
+  document.getElementById('inp-proxy-url').value = '';
+  updateProxyIndicator();
+  showMsg('proxy-msg', 'info', 'Proxy removido.');
+}
+
+async function testProxy() {
+  const url = document.getElementById('inp-proxy-url').value.trim().replace(/\/$/, '');
+  if (!url) return showMsg('proxy-msg', 'error', 'Cole a URL primeiro');
+  showMsg('proxy-msg', 'info', '<span class="spin"></span> Testando...');
+  try {
+    const r = await fetch(url + '/', {signal: AbortSignal.timeout(8000)});
+    if (r.ok || r.status < 500) {
+      showMsg('proxy-msg', 'success', `✅ Proxy acessível (HTTP ${r.status}). Salve e faça login!`);
+    } else {
+      showMsg('proxy-msg', 'warn', `HTTP ${r.status} — tente salvar mesmo assim.`);
+    }
+  } catch(e) {
+    showMsg('proxy-msg', 'error', `Erro: ${e.message}. Verifique a URL.`);
+  }
+}
+
+function updateProxyIndicator() {
+  const el = document.getElementById('proxy-indicator');
+  const url = localStorage.getItem('proxy_url') || '';
+  if (url) {
+    el.style.color = 'var(--green)';
+    const short = url.replace('https://', '').slice(0, 30) + (url.length > 40 ? '…' : '');
+    el.textContent = '✅ Proxy: ' + short;
+  } else {
+    el.style.color = 'var(--red)';
+    el.textContent = '⚠️ Proxy não configurado';
+  }
+}
+
+// Init proxy indicator and populate field
+(function initProxy() {
+  const saved = localStorage.getItem('proxy_url') || '';
+  if (saved) document.getElementById('inp-proxy-url').value = saved;
+  updateProxyIndicator();
+})();
 
 // ===================== INIT =====================
 loadTokens();

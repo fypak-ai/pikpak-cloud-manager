@@ -316,7 +316,11 @@ const ALGORITHMS = [
 // ===================== PROXY FETCH =====================
 // Routes requests through Flask proxy (Railway) to avoid CORS
 async function proxyFetch(url, options = {}) {
-  const proxyBase = localStorage.getItem('proxy_url') || '';
+  // Auto-detect: if running on Railway (has /api/proxy on same origin), use it
+  const stored = localStorage.getItem('proxy_url') || '';
+  const selfProxy = (window.location.pathname === '/' || window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))
+    ? window.location.origin : '';
+  const proxyBase = stored || selfProxy;
   if (!proxyBase) {
     // No proxy configured — try direct (will likely CORS-fail)
     return fetch(url, options);
@@ -1452,6 +1456,13 @@ async function copyPlayerUrl() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
 
 // ===================== INIT =====================
+// Auto-configure proxy when running on Railway
+(function() {
+  const stored = localStorage.getItem('proxy_url') || '';
+  if (!stored && (window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))) {
+    localStorage.setItem('proxy_url', window.location.origin);
+  }
+})();
 loadTokens();
 loadDropboxConfig();
 updateStatusBar();

@@ -3,6 +3,28 @@ from flask import Flask, request, jsonify
 from urllib.parse import urlparse, parse_qs
 
 app = Flask(__name__)
+
+# ── CORS: allow GitHub Pages and any origin ──────────────────────────────
+try:
+    from flask_cors import CORS
+    CORS(app, origins="*", supports_credentials=False)
+except ImportError:
+    @app.after_request
+    def add_cors(resp):
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        resp.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+        return resp
+
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def preflight(path):
+    from flask import Response
+    r = Response()
+    r.headers['Access-Control-Allow-Origin'] = '*'
+    r.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    r.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+    return r, 204
 TOKEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pikpak_tokens.json')
 
 # ======================== PikPak API Constants (from AList source) ========================
@@ -617,6 +639,56 @@ def dropbox_send():
     finally:
         os.unlink(tmp.name)
 
+
+
+# ===================== Generic CORS Proxy =====================
+@app.route('/api/proxy', methods=['POST'])
+def cors_proxy():
+    """Pass-through proxy: browser sends {url, method, headers, body} → we forward to PikPak → return response"""
+    data = request.json
+    url = data.get('url', '')
+    method = data.get('method', 'GET').upper()
+    headers = data.get('headers', {})
+    body = data.get('body')
+
+    if not url:
+        return jsonify({"error": "URL vazia"}), 400
+
+    # Security: only allow PikPak domains
+    allowed = ['mypikpak.net', 'mypikpak.com', 'dropboxapi.com', 'dropbox.com']
+    from urllib.parse import urlparse as _urlparse
+    host = _urlparse(url).netloc.lower()
+    if not any(a in host for a in allowed):
+        return jsonify({"error": f"Domínio não permitido: {host}"}), 403
+
+    # Remove hop-by-hop headers
+    for h in ['host', 'content-length', 'transfer-encoding', 'connection']:
+        headers.pop(h, None)
+        headers.pop(h.title(), None)
+
+    try:
+        if method == 'GET':
+            r = req_lib.get(url, headers=headers, timeout=30, stream=False)
+        elif method == 'POST':
+            if body and isinstance(body, str):
+                r = req_lib.post(url, data=body.encode('utf-8'), headers=headers, timeout=30)
+            elif body:
+                r = req_lib.post(url, json=body, headers=headers, timeout=30)
+            else:
+                r = req_lib.post(url, headers=headers, timeout=30)
+        else:
+            r = req_lib.request(method, url, headers=headers, timeout=30)
+
+        # Forward response
+        try:
+            resp_data = r.json()
+            return jsonify(resp_data), r.status_code
+        except Exception:
+            return r.text, r.status_code, {'Content-Type': r.headers.get('Content-Type', 'text/plain')}
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ======================== Main ========================
 @app.route('/')
 def index():
@@ -627,9 +699,11 @@ def index():
     return "<h1>PikPak Cloud Manager v7</h1><p>Template v7_template.html nao encontrado.</p>"
 
 if __name__ == '__main__':
+    import os as _os
+    port = int(_os.environ.get('PORT', 5000))
     print("=" * 50)
-    print("  PikPak Cloud Manager v7")
+    print("  PikPak Cloud Manager v7 (Railway/Local)")
     print(f"  Device ID: {DEVICE_ID}")
-    print("  http://localhost:5000")
+    print(f"  Listening on port {port}")
     print("=" * 50)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)

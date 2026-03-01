@@ -1,494 +1,1052 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PikPak Cloud Manager</title>
-  <style>
-    :root {
-      --purple: #7c3aed;
-      --purple-light: #a855f7;
-      --blue: #2563eb;
-      --blue-light: #60a5fa;
-      --bg: #0f0c1a;
-      --bg2: #15112a;
-      --bg3: #1e1836;
-      --card: #1c1733;
-      --border: #2e2650;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --green: #22c55e;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      overflow-x: hidden;
-    }
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(15,12,26,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 60px;
-    }
-    .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 1.1rem; font-weight: 700;
-      background: linear-gradient(90deg, var(--purple-light), var(--blue-light));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .nav-logo svg { width: 28px; height: 28px; fill: var(--purple-light); }
-    .nav-links { display: flex; gap: 2rem; }
-    .nav-links a {
-      color: var(--muted); text-decoration: none; font-size: 0.9rem;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--text); }
-    .nav-cta {
-      background: linear-gradient(135deg, var(--purple), var(--blue));
-      color: #fff; border: none; border-radius: 8px;
-      padding: 8px 18px; font-size: 0.85rem; font-weight: 600;
-      cursor: pointer; text-decoration: none; transition: opacity 0.2s;
-    }
-    .nav-cta:hover { opacity: 0.85; }
-    .hero {
-      min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      flex-direction: column; text-align: center;
-      padding: 100px 2rem 60px;
-      position: relative; overflow: hidden;
-    }
-    .hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124,58,237,0.35) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 40% at 80% 60%, rgba(37,99,235,0.2) 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.4);
-      border-radius: 999px; padding: 6px 16px;
-      font-size: 0.8rem; color: var(--purple-light); font-weight: 600;
-      margin-bottom: 1.5rem; letter-spacing: 0.05em;
-    }
-    .hero-badge::before { content: '\25CF'; font-size: 0.5rem; color: var(--green); }
-    h1 {
-      font-size: clamp(2.5rem, 6vw, 4.5rem);
-      font-weight: 800; line-height: 1.1;
-      margin-bottom: 1.25rem;
-    }
-    h1 span {
-      background: linear-gradient(135deg, var(--purple-light), var(--blue-light));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .hero-sub {
-      font-size: clamp(1rem, 2vw, 1.25rem);
-      color: var(--muted); max-width: 560px; line-height: 1.7;
-      margin-bottom: 2.5rem;
-    }
-    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 3.5rem; }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--purple), var(--blue));
-      color: #fff; border: none; border-radius: 12px;
-      padding: 14px 28px; font-size: 1rem; font-weight: 700;
-      cursor: pointer; text-decoration: none;
-      box-shadow: 0 0 30px rgba(124,58,237,0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 45px rgba(124,58,237,0.6); }
-    .btn-secondary {
-      background: transparent;
-      color: var(--text); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px 28px;
-      font-size: 1rem; font-weight: 600;
-      cursor: pointer; text-decoration: none;
-      transition: background 0.2s, border-color 0.2s;
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    .btn-secondary:hover { background: var(--bg3); border-color: var(--purple); }
-    .mockup-wrapper {
-      width: 100%; max-width: 900px;
-      border-radius: 16px; overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.2);
-      background: var(--card);
-    }
-    .mockup-bar {
-      background: var(--bg2); padding: 12px 16px;
-      display: flex; align-items: center; gap: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-    .mockup-dot { width: 12px; height: 12px; border-radius: 50%; }
-    .mockup-dot.red { background: #ff5f57; }
-    .mockup-dot.yellow { background: #ffbd2e; }
-    .mockup-dot.green { background: #28c840; }
-    .mockup-url {
-      flex: 1; background: var(--bg3); border-radius: 6px;
-      padding: 4px 12px; font-size: 0.75rem; color: var(--muted);
-      margin: 0 12px; text-align: center; font-family: monospace;
-    }
-    .mockup-body {
-      display: grid; grid-template-columns: 200px 1fr; min-height: 380px;
-    }
-    .mockup-sidebar {
-      background: var(--bg2); border-right: 1px solid var(--border);
-      padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 6px;
-    }
-    .mockup-sidebar-title {
-      font-size: 0.65rem; text-transform: uppercase;
-      letter-spacing: 0.1em; color: var(--muted);
-      margin-bottom: 8px; padding-left: 8px;
-    }
-    .mockup-tab {
-      border-radius: 8px; padding: 9px 12px; font-size: 0.8rem;
-      color: var(--muted); cursor: default;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .mockup-tab.active {
-      background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(37,99,235,0.2));
-      color: var(--text); border: 1px solid rgba(124,58,237,0.3);
-    }
-    .mockup-tab span { font-size: 1rem; }
-    .mockup-main { padding: 1.25rem; display: flex; flex-direction: column; gap: 10px; }
-    .mockup-header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-    .mockup-title-text { font-size: 0.9rem; font-weight: 700; }
-    .mockup-badge {
-      background: rgba(34,197,94,0.15); color: var(--green);
-      border: 1px solid rgba(34,197,94,0.3);
-      border-radius: 999px; padding: 3px 10px; font-size: 0.7rem; font-weight: 600;
-    }
-    .mockup-input-row { display: flex; gap: 8px; }
-    .mockup-input {
-      flex: 1; background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 8px; padding: 8px 12px; font-size: 0.78rem; color: var(--muted);
-    }
-    .mockup-btn {
-      background: linear-gradient(135deg, var(--purple), var(--blue));
-      color: #fff; border: none; border-radius: 8px;
-      padding: 8px 14px; font-size: 0.78rem; font-weight: 600; cursor: default; white-space: nowrap;
-    }
-    .mockup-file {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px 12px;
-    }
-    .mockup-file-icon { font-size: 1.2rem; }
-    .mockup-file-info { flex: 1; }
-    .mockup-file-name { font-size: 0.8rem; font-weight: 600; }
-    .mockup-file-size { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-    .mockup-file-actions { display: flex; gap: 6px; }
-    .mockup-file-btn {
-      background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3);
-      color: var(--purple-light); border-radius: 6px; padding: 4px 10px; font-size: 0.7rem; cursor: default;
-    }
-    .mockup-progress-bar { background: var(--bg3); border-radius: 999px; height: 4px; margin-top: 4px; }
-    .mockup-progress-fill {
-      height: 100%; border-radius: 999px;
-      background: linear-gradient(90deg, var(--purple), var(--blue)); width: 68%;
-    }
-    .section { padding: 80px 2rem; max-width: 1100px; margin: 0 auto; }
-    .section-label {
-      text-align: center; font-size: 0.8rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.15em;
-      color: var(--purple-light); margin-bottom: 12px;
-    }
-    .section-title { text-align: center; font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: 16px; }
-    .section-sub { text-align: center; color: var(--muted); max-width: 500px; margin: 0 auto 3rem; line-height: 1.7; }
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
-    .feature-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 1.75rem;
-      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
-      position: relative; overflow: hidden;
-    }
-    .feature-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, var(--purple), var(--blue));
-      opacity: 0; transition: opacity 0.3s;
-    }
-    .feature-card:hover { border-color: rgba(124,58,237,0.5); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-    .feature-card:hover::before { opacity: 1; }
-    .feature-icon {
-      width: 48px; height: 48px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem; margin-bottom: 1rem;
-    }
-    .icon-purple { background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3); }
-    .icon-blue { background: rgba(37,99,235,0.2); border: 1px solid rgba(37,99,235,0.3); }
-    .icon-green { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.25); }
-    .icon-pink { background: rgba(236,72,153,0.15); border: 1px solid rgba(236,72,153,0.25); }
-    .icon-orange { background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.25); }
-    .icon-cyan { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.25); }
-    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
-    .feature-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
-    .feature-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-    .tag { background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 0.72rem; color: var(--muted); }
-    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
-    .step-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; }
-    .step-number {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 36px; height: 36px; border-radius: 10px;
-      background: linear-gradient(135deg, var(--purple), var(--blue));
-      font-size: 0.9rem; font-weight: 800; margin-bottom: 1rem; color: #fff;
-    }
-    .step-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .step-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
-    .step-code {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px 14px;
-      font-family: monospace; font-size: 0.78rem; color: var(--purple-light);
-      margin-top: 12px; word-break: break-all;
-    }
-    .cta-section {
-      background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      padding: 80px 2rem; text-align: center; position: relative; overflow: hidden;
-    }
-    .cta-section::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(124,58,237,0.12) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .cta-section h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800; margin-bottom: 1rem; }
-    .cta-section p { color: var(--muted); max-width: 480px; margin: 0 auto 2rem; line-height: 1.7; }
-    .token-box {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1.25rem 1.5rem;
-      display: flex; align-items: flex-start; gap: 14px; max-width: 560px;
-    }
-    .token-icon { font-size: 1.5rem; margin-top: 2px; }
-    .token-box h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
-    .token-box p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
-    .info-grid { display: flex; flex-direction: column; gap: 1rem; align-items: center; margin-top: 1.5rem; }
-    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 2.5rem 2rem; text-align: center; }
-    .footer-logo {
-      font-size: 1.1rem; font-weight: 700;
-      background: linear-gradient(90deg, var(--purple-light), var(--blue-light));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 0.75rem;
-    }
-    footer p { font-size: 0.8rem; color: var(--muted); }
-    footer a { color: var(--purple-light); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-    .divider { height: 1px; background: var(--border); max-width: 1100px; margin: 0 auto; }
-    @media (max-width: 640px) {
-      .mockup-body { grid-template-columns: 1fr; }
-      .mockup-sidebar { display: none; }
-      .nav-links { display: none; }
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PikPak Cloud Manager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+<style>
+:root{--bg:#0f0c1a;--bg2:#15112a;--bg3:#1e1836;--card:#1c1733;--border:#2e2650;--text:#e2e8f0;--muted:#94a3b8;--purple:#7c3aed;--purple-l:#a855f7;--blue:#2563eb;--blue-l:#60a5fa;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+/* NAV */
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.25rem;height:52px;display:flex;align-items:center;gap:1rem;flex-shrink:0;}
+.nav-logo{font-weight:800;font-size:1rem;background:linear-gradient(90deg,var(--purple-l),var(--blue-l));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:auto;}
+.nav-tab{padding:6px 14px;border-radius:8px;font-size:0.82rem;cursor:pointer;color:var(--muted);border:1px solid transparent;transition:.2s;}
+.nav-tab.active{background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(37,99,235,.15));color:var(--text);border-color:rgba(124,58,237,.35);}
+.nav-tab:hover:not(.active){background:var(--bg3);}
+/* LAYOUT */
+.main{flex:1;display:flex;overflow:hidden;}
+.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.content{flex:1;overflow-y:auto;padding:1.25rem;}
+/* SIDEBAR */
+.sidebar-section{padding:.75rem 1rem .25rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.sidebar-item{padding:.6rem 1rem;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;color:var(--muted);border-left:2px solid transparent;}
+.sidebar-item:hover{background:var(--bg3);color:var(--text);}
+.sidebar-item.active{background:rgba(124,58,237,.15);color:var(--purple-l);border-left-color:var(--purple-l);}
+.sidebar-status{margin-top:auto;padding:.75rem 1rem;border-top:1px solid var(--border);font-size:.75rem;color:var(--muted);}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;margin-right:6px;}
+.dot.on{background:var(--green);}
+/* PANELS */
+.panel{display:none;}
+.panel.active{display:block;}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1rem;}
+.card h3{font-size:.9rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;}
+/* FORMS */
+.form-row{display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;}
+.inp{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.82rem;color:var(--text);outline:none;flex:1;min-width:0;}
+.inp:focus{border-color:var(--purple);}
+.inp::placeholder{color:var(--muted);}
+.btn{border:none;border-radius:8px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s;}
+.btn-primary{background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;}
+.btn-primary:hover{opacity:.85;}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--purple);color:var(--purple-l);}
+.btn-sm{padding:5px 10px;font-size:.75rem;}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.btn-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+/* TABS */
+.tab-bar{display:flex;gap:.5rem;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:.75rem;}
+.tab-btn{padding:6px 14px;border-radius:8px;font-size:.8rem;cursor:pointer;color:var(--muted);background:transparent;border:1px solid transparent;}
+.tab-btn.active{background:rgba(124,58,237,.2);color:var(--purple-l);border-color:rgba(124,58,237,.3);}
+/* ALERTS */
+.alert{border-radius:8px;padding:10px 14px;font-size:.8rem;margin-bottom:.75rem;display:flex;align-items:flex-start;gap:.5rem;}
+.alert-error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;}
+.alert-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#86efac;}
+.alert-info{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);color:#93c5fd;}
+.alert-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#fde68a;}
+/* FILE LIST */
+.file-list{display:flex;flex-direction:column;gap:.5rem;}
+.file-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;display:flex;align-items:center;gap:.75rem;}
+.file-item:hover{border-color:rgba(124,58,237,.3);}
+.file-icon{font-size:1.3rem;flex-shrink:0;}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-meta{font-size:.7rem;color:var(--muted);margin-top:2px;}
+.file-actions{display:flex;gap:.4rem;flex-shrink:0;}
+/* BREADCRUMB */
+.breadcrumb{display:flex;align-items:center;gap:.25rem;font-size:.78rem;color:var(--muted);margin-bottom:1rem;flex-wrap:wrap;}
+.bc-item{cursor:pointer;color:var(--purple-l);}
+.bc-item:hover{text-decoration:underline;}
+.bc-sep{color:var(--border);}
+/* LINKS */
+.link-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.6rem 1rem;display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem;}
+.link-url{font-size:.75rem;color:var(--blue-l);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;}
+/* PROGRESS */
+.progress-wrap{background:var(--bg3);border-radius:999px;height:6px;margin-top:6px;}
+.progress-bar{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--purple),var(--blue));transition:width .3s;}
+/* SPINNER */
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* CHECKBOX */
+.cb{width:16px;height:16px;accent-color:var(--purple);cursor:pointer;flex-shrink:0;}
+/* CAPTCHA */
+.captcha-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:1rem;margin-bottom:.75rem;}
+.captcha-box a{color:var(--yellow);text-decoration:underline;}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+select.inp option{background:var(--bg3);}
+</style>
 </head>
 <body>
 
+<!-- NAV -->
 <nav>
-  <div class="nav-logo">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-    </svg>
-    PikPak Manager
-  </div>
-  <div class="nav-links">
-    <a href="#features">Recursos</a>
-    <a href="#como-usar">Como usar</a>
-    <a href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">GitHub</a>
-  </div>
-  <a class="nav-cta" href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">&#11015; Download</a>
+  <div class="nav-logo">☁ PikPak Cloud Manager</div>
+  <div class="nav-tab active" onclick="switchTab('cloud')" id="tab-cloud">☁ Minha Nuvem</div>
+  <div class="nav-tab" onclick="switchTab('share')" id="tab-share">🔗 Compartilhado</div>
+  <div class="nav-tab" onclick="switchTab('dropbox')" id="tab-dropbox">📤 Dropbox</div>
 </nav>
 
-<section class="hero">
-  <div class="hero-badge">v7 &middot; Stable &middot; Open Source</div>
-  <h1>Gerencie sua nuvem<br /><span>PikPak sem limites</span></h1>
-  <p class="hero-sub">
-    Extraia links de compartilhamentos, navegue pelos seus arquivos e transfira tudo pro Dropbox direto do seu navegador &mdash; sem instalar nada al&eacute;m do Python.
-  </p>
-  <div class="hero-actions">
-    <a class="btn-primary" href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">&#11015; Baixar agora</a>
-    <a class="btn-secondary" href="#como-usar">&#9654; Como funciona</a>
-  </div>
-  <div class="mockup-wrapper">
-    <div class="mockup-bar">
-      <div class="mockup-dot red"></div>
-      <div class="mockup-dot yellow"></div>
-      <div class="mockup-dot green"></div>
-      <div class="mockup-url">&#9729; PikPak Cloud Manager &middot; localhost:5000</div>
-    </div>
-    <div class="mockup-body">
-      <div class="mockup-sidebar">
-        <div class="mockup-sidebar-title">NAVEGA&Ccedil;&Atilde;O</div>
-        <div class="mockup-tab active"><span>&#9729;</span> Minha Nuvem</div>
-        <div class="mockup-tab"><span>&#128279;</span> Links Compartilhados</div>
-        <div class="mockup-tab"><span>&#128228;</span> Dropbox</div>
-        <div class="mockup-sidebar-title" style="margin-top:16px;">CONTA</div>
-        <div class="mockup-tab active"><span>&#9679;</span> Conectado</div>
-      </div>
-      <div class="mockup-main">
-        <div class="mockup-header-bar">
-          <div class="mockup-title-text">&#9729; Minha Nuvem &mdash; /Filmes</div>
-          <div class="mockup-badge">&#10003; Online</div>
-        </div>
-        <div class="mockup-input-row">
-          <div class="mockup-input">mypikpak.com/s/VCmZhSRk...</div>
-          <div class="mockup-btn">Extrair Links</div>
-        </div>
-        <div class="mockup-file">
-          <div class="mockup-file-icon">&#127916;</div>
-          <div class="mockup-file-info">
-            <div class="mockup-file-name">Interstellar.2014.2160p.mkv</div>
-            <div class="mockup-file-size">58.3 GB &middot; Drive</div>
-            <div class="mockup-progress-bar"><div class="mockup-progress-fill"></div></div>
-          </div>
-          <div class="mockup-file-actions">
-            <div class="mockup-file-btn">&#11015;</div>
-            <div class="mockup-file-btn">&#128228;</div>
-          </div>
-        </div>
-        <div class="mockup-file">
-          <div class="mockup-file-icon">&#127916;</div>
-          <div class="mockup-file-info">
-            <div class="mockup-file-name">Oppenheimer.2023.4K.mkv</div>
-            <div class="mockup-file-size">42.1 GB &middot; Drive</div>
-          </div>
-          <div class="mockup-file-actions">
-            <div class="mockup-file-btn">&#11015;</div>
-            <div class="mockup-file-btn">&#128228;</div>
-          </div>
-        </div>
-        <div class="mockup-file">
-          <div class="mockup-file-icon">&#128193;</div>
-          <div class="mockup-file-info">
-            <div class="mockup-file-name">Series 2024</div>
-            <div class="mockup-file-size">12 arquivos &middot; Pasta</div>
-          </div>
-          <div class="mockup-file-actions">
-            <div class="mockup-file-btn">&#128194;</div>
-            <div class="mockup-file-btn">&#128228;</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<div class="main">
 
-<div class="divider"></div>
-<section class="section" id="features">
-  <div class="section-label">Recursos</div>
-  <h2 class="section-title">Tudo que voc&ecirc; precisa</h2>
-  <p class="section-sub">Funcionalidades completas para gerenciar, extrair e transferir seus arquivos PikPak.</p>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon icon-purple">&#128279;</div>
-      <h3>Extra&ccedil;&atilde;o de Links Compartilhados</h3>
-      <p>Cole qualquer URL <code>mypikpak.com/s/...</code> e extraia todos os links de download em segundos &mdash; pastas inteiras ou arquivos &uacute;nicos.</p>
-      <div class="feature-tags"><span class="tag">Pasta</span><span class="tag">Arquivo &uacute;nico</span><span class="tag">Magnet links</span></div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-blue">&#9729;</div>
-      <h3>Minha Nuvem</h3>
-      <p>Navegue pelos seus arquivos PikPak com breadcrumb, sele&ccedil;&atilde;o m&uacute;ltipla e a&ccedil;&otilde;es em lote. Login via Access Token (sem senha).</p>
-      <div class="feature-tags"><span class="tag">Breadcrumb</span><span class="tag">Multi-sele&ccedil;&atilde;o</span><span class="tag">Auto-login</span></div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-green">&#128228;</div>
-      <h3>Transfer&ecirc;ncia para Dropbox</h3>
-      <p>Envie arquivos selecionados diretamente para o Dropbox com barra de progresso em 2 fases e tratamento de erros por arquivo.</p>
-      <div class="feature-tags"><span class="tag">Envio em massa</span><span class="tag">Progresso</span><span class="tag">Retry</span></div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-pink">&#128272;</div>
-      <h3>Auth Autom&aacute;tica</h3>
-      <p>Salva o <code>refresh_token</code> e renova o <code>access_token</code> silenciosamente. Login uma vez &mdash; o app cuida do resto.</p>
-      <div class="feature-tags"><span class="tag">refresh_token</span><span class="tag">Auto-renova&ccedil;&atilde;o</span></div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-orange">&#128203;</div>
-      <h3>Copiar e Baixar</h3>
-      <p>Bot&otilde;es individuais de Download e Copiar link para cada arquivo, al&eacute;m de &ldquo;Copiar Todos&rdquo; para exportar todos os links de uma vez.</p>
-      <div class="feature-tags"><span class="tag">Copiar link</span><span class="tag">Copiar todos</span><span class="tag">Download direto</span></div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon icon-cyan">&#128065;</div>
-      <h3>Visualizador de Texto</h3>
-      <p>Visualize arquivos de texto e conte&uacute;do magnet diretamente no app, sem precisar baixar antes.</p>
-      <div class="feature-tags"><span class="tag">.txt</span><span class="tag">Magnet</span><span class="tag">Preview</span></div>
-    </div>
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-section">Conta PikPak</div>
+  <div class="sidebar-item active" onclick="showLoginPanel()" id="menu-login">🔐 Login</div>
+  <div class="sidebar-section" style="margin-top:.5rem;">Sessão</div>
+  <div class="sidebar-item" id="menu-info">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">Desconectado</span>
   </div>
-</section>
-
-<div class="divider"></div>
-<section class="section" id="como-usar">
-  <div class="section-label">Instala&ccedil;&atilde;o</div>
-  <h2 class="section-title">Rodando em 4 passos</h2>
-  <p class="section-sub">S&oacute; precisa do Python instalado. Nenhuma configura&ccedil;&atilde;o complicada.</p>
-  <div class="steps-grid">
-    <div class="step-card">
-      <div class="step-number">1</div>
-      <h3>Instale o Python</h3>
-      <p>Baixe em <a href="https://python.org/downloads" target="_blank" style="color:var(--purple-light)">python.org</a> e marque <strong>&ldquo;Add Python to PATH&rdquo;</strong> durante a instala&ccedil;&atilde;o.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-number">2</div>
-      <h3>Baixe os arquivos</h3>
-      <p>Salve os dois arquivos em <code>C:\PikPakManager</code></p>
-      <div class="step-code">curl.exe -o pikpak_extractor.py https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/pikpak_extractor.py</div>
-    </div>
-    <div class="step-card">
-      <div class="step-number">3</div>
-      <h3>Instale depend&ecirc;ncias</h3>
-      <p>Abra o terminal na pasta e rode:</p>
-      <div class="step-code">pip install flask requests</div>
-    </div>
-    <div class="step-card">
-      <div class="step-number">4</div>
-      <h3>Inicie o app</h3>
-      <p>Execute e acesse em <code>localhost:5000</code></p>
-      <div class="step-code">python pikpak_extractor.py</div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-<section class="section">
-  <div class="section-label">Dica</div>
-  <h2 class="section-title">Como obter o Access Token</h2>
-  <p class="section-sub">O login via token &eacute; mais est&aacute;vel que email/senha &mdash; sem captcha, sem bloqueio.</p>
-  <div class="info-grid">
-    <div class="token-box">
-      <div class="token-icon">&#128273;</div>
-      <div>
-        <h4>Extraindo pelo DevTools</h4>
-        <p>Abra <strong>mypikpak.com</strong> &rarr; F12 &rarr; aba <strong>Network</strong> &rarr; clique em qualquer pasta &rarr; encontre um request com <code>api-drive</code> &rarr; copie o header <code>Authorization: Bearer eyJ...</code></p>
-      </div>
-    </div>
-    <div class="token-box">
-      <div class="token-icon">&#128190;</div>
-      <div>
-        <h4>Token salvo automaticamente</h4>
-        <p>Ap&oacute;s o primeiro login, o app salva o <code>refresh_token</code> em <code>pikpak_tokens.json</code>. Na pr&oacute;xima vez, reconecta sozinho sem precisar colar o token de novo.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="cta-section">
-  <h2>Pronto para come&ccedil;ar?</h2>
-  <p>Open source, gratuito, roda localmente. Seus arquivos ficam no seu computador.</p>
-  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
-    <a class="btn-primary" href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">&#11015; Ver no GitHub</a>
-    <a class="btn-secondary" href="https://github.com/fypak-ai/pikpak-cloud-manager/archive/refs/heads/main.zip" target="_blank">&#128230; Baixar ZIP</a>
+  <div class="sidebar-item btn-danger" id="menu-logout" onclick="logout()" style="display:none;">🚪 Sair</div>
+  <div class="sidebar-status">
+    <div style="margin-bottom:4px;font-size:.7rem;color:var(--muted);">GitHub Pages — client-side only</div>
+    <div style="font-size:.7rem;color:var(--border);">Tokens salvos no browser</div>
   </div>
 </div>
 
-<footer>
-  <div class="footer-logo">&#9729; PikPak Cloud Manager</div>
-  <p>Open source &middot; <a href="https://github.com/fypak-ai/pikpak-cloud-manager" target="_blank">github.com/fypak-ai/pikpak-cloud-manager</a></p>
-</footer>
+<!-- CONTENT -->
+<div class="content" id="content-area">
 
+  <!-- LOGIN PANEL -->
+  <div class="panel active" id="panel-login">
+    <div class="card">
+      <h3>🔐 Login PikPak</h3>
+      <div class="tab-bar">
+        <div class="tab-btn active" onclick="switchLoginTab('token')" id="ltab-token">Access Token</div>
+        <div class="tab-btn" onclick="switchLoginTab('pass')" id="ltab-pass">Email & Senha</div>
+      </div>
+
+      <!-- Token tab -->
+      <div id="login-token-panel">
+        <div class="alert alert-info">💡 Abra <strong>mypikpak.com</strong> → F12 → Network → clique numa pasta → copie o header <code>Authorization: Bearer eyJ...</code></div>
+        <div class="form-row">
+          <input class="inp" id="inp-token" placeholder="Cole aqui: Bearer eyJ... ou só o token" />
+        </div>
+        <div class="form-row">
+          <button class="btn btn-primary" onclick="loginWithToken()">Entrar com Token</button>
+          <button class="btn btn-secondary" onclick="loginForceToken()">Salvar sem validar</button>
+        </div>
+      </div>
+
+      <!-- Password tab -->
+      <div id="login-pass-panel" style="display:none;">
+        <div class="alert alert-warn">⚠️ Login email/senha requer captcha manual. Prefira o Access Token.</div>
+        <div class="form-row">
+          <input class="inp" id="inp-email" type="email" placeholder="Email" />
+        </div>
+        <div class="form-row">
+          <input class="inp" id="inp-password" type="password" placeholder="Senha" />
+        </div>
+        <div id="captcha-section" style="display:none;" class="captcha-box">
+          <p style="font-size:.82rem;margin-bottom:.5rem;">🧩 Verificação necessária!</p>
+          <p style="font-size:.78rem;margin-bottom:.75rem;">1️⃣ Clique no link abaixo para abrir o captcha<br/>2️⃣ Complete o puzzle<br/>3️⃣ Volte e clique "Já verifiquei"</p>
+          <a id="captcha-link" href="#" target="_blank" style="font-size:.8rem;">🔗 Abrir Captcha</a><br/><br/>
+          <button class="btn btn-secondary btn-sm" onclick="retryCaptcha()">✅ Já verifiquei</button>
+        </div>
+        <div class="form-row">
+          <button class="btn btn-primary" onclick="loginWithPassword()">Entrar</button>
+        </div>
+      </div>
+
+      <div id="login-msg"></div>
+    </div>
+
+    <!-- Auto-login info -->
+    <div class="card" id="auto-login-card" style="display:none;">
+      <h3>⚡ Sessão Salva</h3>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem;">Você tem uma sessão salva. Conectando automaticamente...</p>
+      <button class="btn btn-primary" onclick="doAutoLogin()">Reconectar</button>
+    </div>
+  </div>
+
+  <!-- CLOUD PANEL -->
+  <div class="panel" id="panel-cloud">
+    <div id="breadcrumb-bar" class="breadcrumb"></div>
+    <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" onclick="listFiles(currentFolderId)">🔄 Atualizar</button>
+      <button class="btn btn-green btn-sm" id="btn-select-all" onclick="toggleSelectAll()">☑ Selecionar Tudo</button>
+      <button class="btn btn-secondary btn-sm" id="btn-send-dropbox" onclick="sendSelectedToDropbox()" style="display:none;">📤 Enviar para Dropbox</button>
+      <span id="cloud-count" style="font-size:.78rem;color:var(--muted);margin-left:auto;"></span>
+    </div>
+    <div id="cloud-msg"></div>
+    <div id="file-list" class="file-list"></div>
+    <div style="text-align:center;margin-top:1rem;">
+      <button class="btn btn-secondary btn-sm" id="btn-load-more" onclick="loadMore()" style="display:none;">Carregar mais...</button>
+    </div>
+  </div>
+
+  <!-- SHARE PANEL -->
+  <div class="panel" id="panel-share">
+    <div class="card">
+      <h3>🔗 Extrair Links de Compartilhamento</h3>
+      <div class="form-row">
+        <input class="inp" id="inp-share-url" placeholder="https://mypikpak.com/s/..." />
+        <input class="inp" id="inp-pass-code" placeholder="Código (se houver)" style="max-width:140px;" />
+      </div>
+      <div class="form-row">
+        <button class="btn btn-primary" onclick="extractShare()">Extrair Links</button>
+      </div>
+      <div id="share-msg"></div>
+    </div>
+    <div id="share-results" style="display:none;">
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;">
+        <strong id="share-count" style="font-size:.85rem;"></strong>
+        <button class="btn btn-secondary btn-sm" onclick="copyAllLinks()">📋 Copiar Todos</button>
+        <button class="btn btn-green btn-sm" id="btn-share-dropbox" onclick="sendShareToDropbox()" style="display:none;">📤 Enviar para Dropbox</button>
+      </div>
+      <div id="share-list" class="file-list"></div>
+    </div>
+  </div>
+
+  <!-- DROPBOX PANEL -->
+  <div class="panel" id="panel-dropbox">
+    <div class="card">
+      <h3>📤 Configurar Dropbox</h3>
+      <div class="form-row">
+        <input class="inp" id="inp-dbx-token" placeholder="Token do Dropbox" type="password" />
+      </div>
+      <div class="form-row">
+        <input class="inp" id="inp-dbx-folder" placeholder="Pasta destino (ex: /PikPak)" value="/PikPak" style="max-width:200px;" />
+        <button class="btn btn-primary" onclick="testDropbox()">Testar Token</button>
+        <button class="btn btn-secondary" onclick="saveDropboxConfig()">💾 Salvar</button>
+      </div>
+      <div id="dbx-msg"></div>
+    </div>
+    <div class="card" id="dbx-queue-card" style="display:none;">
+      <h3>📋 Fila de Envio</h3>
+      <div id="dbx-queue"></div>
+    </div>
+  </div>
+
+</div><!-- /content-area -->
+</div><!-- /main -->
+
+<script>
+// ===================== CONSTANTS =====================
+const API_USER   = 'https://user.mypikpak.net';
+const API_DRIVE  = 'https://api-drive.mypikpak.net';
+const CLIENT_ID  = 'YUMx5nI8ZU8Ap8pm';
+const CLIENT_SECRET = 'dbw2OtmVEeuUvIptb1Coyg';
+const CLIENT_VER = '2.0.0';
+const PKG_NAME   = 'mypikpak.com';
+const ALGORITHMS = [
+  'C9qPpZLN8ucRTaTiUMWYS9cQvWOE','+r6CQVxjzJV6LCV','F','pFJRC',
+  '9WXYIDGrwTCz2OiVlgZa90qpECPD6olt','/750aCr4lm/Sly/c','RB+DT/gZCrbV','',
+  'CyLsf7hdkIRxRm215hl','7xHvLi2tOYP0Y92b','ZGTXXxu8E/MIWaEDB+Sm/',
+  '1UI3','E7fP5Pfijd+7K+t6Tg/NhuLq0eEUVChpJSkrKxpO',
+  'ihtqpG6FMt65+Xk+tWUH2','NhXXU9rg4XXdzo7u5o'
+];
+
+// ===================== STATE =====================
+let STATE = {
+  accessToken: '',
+  refreshToken: '',
+  userId: '',
+  deviceId: getOrCreateDeviceId(),
+  dropboxToken: '',
+  dropboxFolder: '/PikPak',
+  // cloud browser
+  folderStack: [{id: '', name: '☁ Raiz'}],
+  nextPageToken: '',
+  allFiles: [],
+  // share
+  shareFiles: [],
+  shareId: '',
+  // pending captcha
+  pendingCaptcha: {token: '', url: '', username: '', password: ''},
+};
+
+function getOrCreateDeviceId() {
+  let did = localStorage.getItem('pikpak_device_id');
+  if (!did) {
+    did = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2,'0')).join('');
+    localStorage.setItem('pikpak_device_id', did);
+  }
+  return did;
+}
+
+// ===================== PERSISTENCE =====================
+function loadTokens() {
+  try {
+    const d = JSON.parse(localStorage.getItem('pikpak_tokens') || '{}');
+    STATE.accessToken  = d.access_token  || '';
+    STATE.refreshToken = d.refresh_token || '';
+    STATE.userId       = d.user_id       || '';
+  } catch(e) {}
+}
+function saveTokens() {
+  localStorage.setItem('pikpak_tokens', JSON.stringify({
+    access_token:  STATE.accessToken,
+    refresh_token: STATE.refreshToken,
+    user_id:       STATE.userId,
+  }));
+}
+function loadDropboxConfig() {
+  STATE.dropboxToken  = localStorage.getItem('dbx_token')  || '';
+  STATE.dropboxFolder = localStorage.getItem('dbx_folder') || '/PikPak';
+  if (STATE.dropboxToken) {
+    document.getElementById('inp-dbx-token').value  = STATE.dropboxToken;
+    document.getElementById('inp-dbx-folder').value = STATE.dropboxFolder;
+  }
+}
+
+// ===================== CAPTCHA SIGN =====================
+function getCaptchaSign() {
+  const ts = String(Date.now());
+  let s = CLIENT_ID + CLIENT_VER + PKG_NAME + STATE.deviceId + ts;
+  for (const alg of ALGORITHMS) {
+    s = md5(s + alg);
+  }
+  return {timestamp: ts, sign: '1.' + s};
+}
+
+// ===================== CAPTCHA INIT =====================
+async function captchaInitForLogin(username) {
+  let metas = {};
+  if (/\S+@\S+\.\S+/.test(username)) metas.email = username;
+  else if (username.length >= 11 && username.length <= 18) metas.phone_number = username;
+  else metas.username = username;
+
+  const body = {
+    action: 'POST:/v1/auth/signin',
+    captcha_token: '',
+    client_id: CLIENT_ID,
+    device_id: STATE.deviceId,
+    meta: metas,
+    redirect_uri: 'xlaccsdk01://xbase.cloud/callback?state=harbor',
+  };
+  try {
+    const r = await fetch(`${API_USER}/v1/shield/captcha/init?client_id=${CLIENT_ID}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0','X-Device-ID': STATE.deviceId},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    return {token: d.captcha_token || '', url: d.url || ''};
+  } catch(e) { return {token:'', url:''}; }
+}
+
+async function captchaInitForAction(action, userId='', existingToken='') {
+  const {timestamp, sign} = getCaptchaSign();
+  const body = {
+    action,
+    captcha_token: existingToken,
+    client_id: CLIENT_ID,
+    device_id: STATE.deviceId,
+    meta: {
+      client_version: CLIENT_VER,
+      package_name: PKG_NAME,
+      user_id: userId || STATE.userId,
+      timestamp,
+      captcha_sign: sign,
+    },
+    redirect_uri: 'xlaccsdk01://xbase.cloud/callback?state=harbor',
+  };
+  try {
+    const r = await fetch(`${API_USER}/v1/shield/captcha/init?client_id=${CLIENT_ID}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0','X-Device-ID': STATE.deviceId},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    return {token: d.captcha_token || '', url: d.url || ''};
+  } catch(e) { return {token:'', url:''}; }
+}
+
+async function getHeaders() {
+  const {token: ct} = await captchaInitForAction('GET:/drive/v1/files');
+  return {
+    'Authorization': `Bearer ${STATE.accessToken}`,
+    'User-Agent': 'Mozilla/5.0',
+    'X-Device-ID': STATE.deviceId,
+    'X-Captcha-Token': ct,
+    'Content-Type': 'application/json',
+  };
+}
+
+// ===================== AUTH =====================
+async function loginWithToken() {
+  let token = document.getElementById('inp-token').value.trim();
+  if (!token) return showMsg('login-msg', 'error', 'Token vazio');
+  if (token.toLowerCase().startsWith('bearer ')) token = token.slice(7).trim();
+  token = token.replace(/^["']|["']$/g, '').trim();
+
+  showMsg('login-msg', 'info', '<span class="spin"></span> Validando token...');
+  const {token: ct} = await captchaInitForAction('GET:/drive/v1/about');
+  const r = await fetch(`${API_DRIVE}/drive/v1/about`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'X-Device-ID': STATE.deviceId,
+      'X-Captcha-Token': ct || '',
+      'User-Agent': 'Mozilla/5.0',
+    }
+  });
+  if (r.status === 200) {
+    const d = await r.json();
+    STATE.accessToken = token;
+    STATE.userId = d.sub || '';
+    saveTokens();
+    onLoginSuccess();
+    showMsg('login-msg', 'success', '✅ Login via token OK!');
+  } else if (r.status === 401 || r.status === 403) {
+    showMsg('login-msg', 'error', 'Token expirado ou inválido. Copie novamente do F12 → Network.');
+  } else {
+    const err = await r.json().catch(()=>({}));
+    showMsg('login-msg', 'warn', `HTTP ${r.status}: ${err.error_description || err.error || ''}. Tente "Salvar sem validar".`);
+  }
+}
+
+async function loginForceToken() {
+  let token = document.getElementById('inp-token').value.trim();
+  if (!token) return showMsg('login-msg', 'error', 'Token vazio');
+  if (token.toLowerCase().startsWith('bearer ')) token = token.slice(7).trim();
+  token = token.replace(/^["']|["']$/g, '').trim();
+  STATE.accessToken = token;
+  saveTokens();
+  onLoginSuccess();
+  showMsg('login-msg', 'success', '💾 Token salvo! Testando ao listar arquivos...');
+}
+
+async function loginWithPassword() {
+  const username = document.getElementById('inp-email').value.trim();
+  const password = document.getElementById('inp-password').value.trim();
+  if (!username || !password) return showMsg('login-msg', 'error', 'Email e senha obrigatórios');
+  showMsg('login-msg', 'info', '<span class="spin"></span> Iniciando captcha...');
+  const {token: ct, url} = await captchaInitForLogin(username);
+  if (url) {
+    STATE.pendingCaptcha = {token: ct, url, username, password};
+    document.getElementById('captcha-link').href = url;
+    document.getElementById('captcha-section').style.display = 'block';
+    showMsg('login-msg', 'warn', '🧩 Captcha necessário. Complete o puzzle e clique "Já verifiquei".');
+    return;
+  }
+  await doSignin(username, password, ct);
+}
+
+async function retryCaptcha() {
+  const {username, password, token} = STATE.pendingCaptcha;
+  showMsg('login-msg', 'info', '<span class="spin"></span> Tentando login...');
+  await doSignin(username, password, token);
+}
+
+async function doSignin(username, password, captchaToken) {
+  const body = {
+    captcha_token: captchaToken || '',
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    username, password,
+  };
+  const r = await fetch(`${API_USER}/v1/auth/signin?client_id=${CLIENT_ID}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0',
+              'X-Device-ID': STATE.deviceId,'X-Captcha-Token': captchaToken||''},
+    body: JSON.stringify(body)
+  });
+  if (r.status !== 200) {
+    const err = await r.json().catch(()=>({}));
+    const desc = err.error_description || err.error || `HTTP ${r.status}`;
+    if (err.error_code === 9 || desc.toLowerCase().includes('captcha')) {
+      const {token: ct2, url: url2} = await captchaInitForLogin(username);
+      if (url2) {
+        STATE.pendingCaptcha = {token: ct2, url: url2, username, password};
+        document.getElementById('captcha-link').href = url2;
+        document.getElementById('captcha-section').style.display = 'block';
+        showMsg('login-msg', 'warn', '🧩 Complete o captcha e clique "Já verifiquei".');
+        return;
+      }
+    }
+    showMsg('login-msg', 'error', desc + ' — Use o método Access Token');
+    return;
+  }
+  const resp = await r.json();
+  STATE.accessToken  = resp.access_token  || '';
+  STATE.refreshToken = resp.refresh_token || '';
+  STATE.userId       = resp.sub           || '';
+  saveTokens();
+  document.getElementById('captcha-section').style.display = 'none';
+  onLoginSuccess();
+  showMsg('login-msg', 'success', '✅ Login OK!');
+}
+
+async function doAutoLogin() {
+  if (!STATE.refreshToken) return;
+  const r = await fetch(`${API_USER}/v1/auth/token?client_id=${CLIENT_ID}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','User-Agent':'','X-Device-ID': STATE.deviceId},
+    body: JSON.stringify({
+      client_id: CLIENT_ID, client_secret: CLIENT_SECRET,
+      grant_type: 'refresh_token', refresh_token: STATE.refreshToken
+    })
+  });
+  if (r.status !== 200) { loadTokens(); updateStatusBar(); return; }
+  const resp = await r.json();
+  if (resp.error_code && resp.error_code !== 0) { updateStatusBar(); return; }
+  STATE.accessToken  = resp.access_token  || STATE.accessToken;
+  STATE.refreshToken = resp.refresh_token || STATE.refreshToken;
+  STATE.userId       = resp.sub           || STATE.userId;
+  saveTokens();
+  onLoginSuccess();
+}
+
+async function refreshIfNeeded() {
+  if (!STATE.refreshToken) return false;
+  const r = await fetch(`${API_USER}/v1/auth/token?client_id=${CLIENT_ID}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','User-Agent':'','X-Device-ID': STATE.deviceId},
+    body: JSON.stringify({
+      client_id: CLIENT_ID, client_secret: CLIENT_SECRET,
+      grant_type: 'refresh_token', refresh_token: STATE.refreshToken
+    })
+  });
+  if (r.status !== 200) return false;
+  const resp = await r.json();
+  if (resp.error_code && resp.error_code !== 0) return false;
+  STATE.accessToken  = resp.access_token  || STATE.accessToken;
+  STATE.refreshToken = resp.refresh_token || STATE.refreshToken;
+  STATE.userId       = resp.sub           || STATE.userId;
+  saveTokens();
+  return true;
+}
+
+function logout() {
+  STATE.accessToken = STATE.refreshToken = STATE.userId = '';
+  localStorage.removeItem('pikpak_tokens');
+  updateStatusBar();
+  switchTab('cloud');
+  showPanel('panel-login');
+}
+
+function onLoginSuccess() {
+  updateStatusBar();
+  showPanel('panel-cloud');
+  switchTab('cloud');
+  listFiles('');
+}
+
+// ===================== STATUS BAR =====================
+function updateStatusBar() {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  const logoutBtn = document.getElementById('menu-logout');
+  if (STATE.accessToken) {
+    dot.className = 'dot on';
+    text.textContent = STATE.userId ? `UID: ${STATE.userId.slice(0,8)}…` : 'Conectado';
+    logoutBtn.style.display = 'flex';
+  } else {
+    dot.className = 'dot';
+    text.textContent = 'Desconectado';
+    logoutBtn.style.display = 'none';
+  }
+}
+
+// ===================== CLOUD BROWSER =====================
+let currentFolderId = '';
+let selectAll = false;
+
+async function listFiles(folderId, pageToken='') {
+  if (!STATE.accessToken) {
+    showMsg('cloud-msg','warn','⚠️ Faça login primeiro.');
+    showPanel('panel-login');
+    return;
+  }
+  currentFolderId = folderId || '';
+  if (!pageToken) { STATE.allFiles = []; STATE.nextPageToken = ''; }
+  showMsg('cloud-msg','info','<span class="spin"></span> Carregando...');
+
+  const params = new URLSearchParams({
+    parent_id: currentFolderId,
+    thumbnail_size: 'SIZE_LARGE',
+    with_audit: 'true',
+    limit: '100',
+    filters: JSON.stringify({phase:{eq:'PHASE_TYPE_COMPLETE'},trashed:{eq:false}})
+  });
+  if (pageToken) params.set('page_token', pageToken);
+
+  let headers = await getHeaders();
+  let r = await fetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers});
+
+  if (r.status === 401 || r.status === 403) {
+    const ok = await refreshIfNeeded();
+    if (ok) { headers = await getHeaders(); r = await fetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers}); }
+  }
+
+  if (r.status !== 200) {
+    const e = await r.json().catch(()=>({}));
+    showMsg('cloud-msg','error',`Erro: ${e.error_description || e.error || r.status}`);
+    return;
+  }
+  const data = await r.json();
+  const files = data.files || [];
+  STATE.allFiles = pageToken ? [...STATE.allFiles, ...files] : files;
+  STATE.nextPageToken = data.next_page_token || '';
+
+  clearMsg('cloud-msg');
+  renderFileList();
+  updateBreadcrumb();
+
+  document.getElementById('btn-load-more').style.display = STATE.nextPageToken ? 'inline-flex' : 'none';
+  document.getElementById('cloud-count').textContent = `${STATE.allFiles.length} itens${STATE.nextPageToken ? '+' : ''}`;
+}
+
+function renderFileList() {
+  const container = document.getElementById('file-list');
+  if (!STATE.allFiles.length) { container.innerHTML = '<p style="color:var(--muted);font-size:.82rem;">Pasta vazia.</p>'; return; }
+  container.innerHTML = '';
+  for (const f of STATE.allFiles) {
+    const isFolder = f.kind === 'drive#folder';
+    const icon = isFolder ? '📁' : getFileIcon(f.name);
+    const size = f.size ? formatSize(f.size) : '';
+    const el = document.createElement('div');
+    el.className = 'file-item';
+    el.dataset.id = f.id;
+    el.innerHTML = `
+      <input type="checkbox" class="cb file-cb" data-id="${f.id}" data-name="${esc(f.name)}" />
+      <div class="file-icon">${icon}</div>
+      <div class="file-info">
+        <div class="file-name" title="${esc(f.name)}">${esc(f.name)}</div>
+        <div class="file-meta">${isFolder ? 'Pasta' : (size || f.mime_type || '')}</div>
+      </div>
+      <div class="file-actions">
+        ${isFolder
+          ? `<button class="btn btn-secondary btn-sm" onclick="openFolder('${f.id}','${esc(f.name)}')">📂 Abrir</button>`
+          : `<button class="btn btn-secondary btn-sm" onclick="getFileLink('${f.id}','${esc(f.name)}')">⬇ Link</button>`
+        }
+      </div>`;
+    container.appendChild(el);
+  }
+  // listen to checkbox changes to show/hide dropbox button
+  container.querySelectorAll('.file-cb').forEach(cb => cb.addEventListener('change', updateDropboxBtn));
+}
+
+function updateDropboxBtn() {
+  const any = document.querySelectorAll('.file-cb:checked').length > 0;
+  document.getElementById('btn-send-dropbox').style.display = any ? 'inline-flex' : 'none';
+}
+
+function toggleSelectAll() {
+  selectAll = !selectAll;
+  document.querySelectorAll('.file-cb').forEach(cb => cb.checked = selectAll);
+  document.getElementById('btn-select-all').textContent = selectAll ? '☐ Desmarcar Tudo' : '☑ Selecionar Tudo';
+  updateDropboxBtn();
+}
+
+async function loadMore() {
+  if (STATE.nextPageToken) await listFiles(currentFolderId, STATE.nextPageToken);
+}
+
+function openFolder(id, name) {
+  STATE.folderStack.push({id, name});
+  listFiles(id);
+}
+
+function navigateTo(index) {
+  STATE.folderStack = STATE.folderStack.slice(0, index + 1);
+  const target = STATE.folderStack[STATE.folderStack.length - 1];
+  listFiles(target.id);
+}
+
+function updateBreadcrumb() {
+  const bar = document.getElementById('breadcrumb-bar');
+  bar.innerHTML = '';
+  STATE.folderStack.forEach((item, i) => {
+    const isLast = i === STATE.folderStack.length - 1;
+    if (i > 0) { const sep = document.createElement('span'); sep.className='bc-sep'; sep.textContent=' › '; bar.appendChild(sep); }
+    const el = document.createElement('span');
+    if (isLast) { el.style.color='var(--text)'; el.textContent = item.name; }
+    else { el.className='bc-item'; el.textContent=item.name; el.onclick=()=>navigateTo(i); }
+    bar.appendChild(el);
+  });
+}
+
+async function getFileLink(fileId, fileName) {
+  if (!STATE.accessToken) return showMsg('cloud-msg','warn','Login necessário');
+  const headers = await getHeaders();
+  const r = await fetch(`${API_DRIVE}/drive/v1/files/${fileId}?thumbnail_size=SIZE_LARGE`, {headers});
+  if (r.status !== 200) { showMsg('cloud-msg','error',`Erro HTTP ${r.status}`); return; }
+  const data = await r.json();
+  const links = [];
+  for (const m of (data.medias || [])) {
+    const lnk = m.link || {};
+    if (lnk.url) links.push(lnk.url);
+  }
+  if (!links.length && data.web_content_link) links.push(data.web_content_link);
+  if (!links.length) { showMsg('cloud-msg','warn','Sem link disponível'); return; }
+  await navigator.clipboard.writeText(links[0]).catch(()=>{});
+  showMsg('cloud-msg','success',`✅ Link copiado: ${fileName}`);
+}
+
+// ===================== SHARE LINK =====================
+async function extractShare() {
+  const url = document.getElementById('inp-share-url').value.trim();
+  const passCode = document.getElementById('inp-pass-code').value.trim();
+  if (!url) return showMsg('share-msg','error','URL vazia');
+  const m = url.match(/\/s\/([^/?#]+)/);
+  if (!m) return showMsg('share-msg','error','URL inválida. Use: mypikpak.com/s/...');
+  const shareId = m[1];
+
+  showMsg('share-msg','info','<span class="spin"></span> Buscando arquivos...');
+  document.getElementById('share-results').style.display = 'none';
+
+  const headers = {
+    'X-Device-ID': STATE.deviceId,
+    'X-Client-ID': CLIENT_ID,
+    'X-Client-Version': CLIENT_VER,
+  };
+
+  const allFiles = [];
+  let pageToken = '';
+  let parentId = '';
+  let firstReq = true;
+
+  while (true) {
+    const params = new URLSearchParams({share_id: shareId, limit:'100', thumbnail_size:'SIZE_LARGE'});
+    if (parentId)  params.set('parent_id', parentId);
+    if (passCode)  params.set('pass_code_token', passCode);
+    if (pageToken) params.set('page_token', pageToken);
+
+    const r = await fetch(`${API_DRIVE}/drive/v1/share/detail?${params}`, {headers});
+    if (r.status !== 200) {
+      const e = await r.json().catch(()=>({}));
+      showMsg('share-msg','error',`HTTP ${r.status}: ${e.error_description || e.error || ''}`);
+      return;
+    }
+    const resp = await r.json();
+
+    if (firstReq) {
+      firstReq = false;
+      const fi = resp.file_info;
+      if (fi) {
+        if (fi.kind === 'drive#folder') {
+          parentId = fi.id;
+          continue;
+        } else {
+          // single file
+          STATE.shareFiles = [{id:fi.id, name:fi.name, kind:fi.kind, size:fi.size||0, mime_type:fi.mime_type||'', single_file:true}];
+          STATE.shareId = shareId;
+          renderShareResults();
+          clearMsg('share-msg');
+          return;
+        }
+      }
+    }
+
+    const files = resp.files || [];
+    if (!files.length) break;
+    allFiles.push(...files);
+    pageToken = resp.next_page_token || '';
+    if (!pageToken) break;
+  }
+
+  STATE.shareFiles = allFiles.map(f => ({id:f.id, name:f.name, kind:f.kind, size:parseInt(f.size||0), mime_type:f.mime_type||''}));
+  STATE.shareId = shareId;
+  renderShareResults();
+  clearMsg('share-msg');
+}
+
+function renderShareResults() {
+  const container = document.getElementById('share-list');
+  container.innerHTML = '';
+  document.getElementById('share-count').textContent = `${STATE.shareFiles.length} arquivo(s) encontrado(s)`;
+  document.getElementById('share-results').style.display = 'block';
+
+  const showDropbox = STATE.dropboxToken ? 'inline-flex' : 'none';
+  document.getElementById('btn-share-dropbox').style.display = showDropbox;
+
+  for (const f of STATE.shareFiles) {
+    const isFolder = f.kind === 'drive#folder';
+    const icon = isFolder ? '📁' : getFileIcon(f.name);
+    const size = f.size ? formatSize(f.size) : '';
+    const el = document.createElement('div');
+    el.className = 'file-item';
+    el.innerHTML = `
+      <input type="checkbox" class="cb share-cb" data-id="${f.id}" data-name="${esc(f.name)}" checked />
+      <div class="file-icon">${icon}</div>
+      <div class="file-info">
+        <div class="file-name" title="${esc(f.name)}">${esc(f.name)}</div>
+        <div class="file-meta">${isFolder ? 'Pasta' : (size || f.mime_type)}</div>
+      </div>
+      <div class="file-actions">
+        ${!isFolder ? `
+          <button class="btn btn-secondary btn-sm" onclick="getShareLink('${f.id}','${esc(f.name)}')">⬇ Link</button>
+          <button class="btn btn-secondary btn-sm" onclick="copyShareLink('${f.id}','${esc(f.name)}')">📋 Copiar</button>
+        ` : ''}
+      </div>`;
+    container.appendChild(el);
+  }
+}
+
+async function getShareLink(fileId, fileName) {
+  const passCode = document.getElementById('inp-pass-code').value.trim();
+  const params = new URLSearchParams({share_id: STATE.shareId, file_id: fileId, thumbnail_size:'SIZE_LARGE'});
+  if (passCode) params.set('pass_code_token', passCode);
+  const headers = {'X-Device-ID': STATE.deviceId,'X-Client-ID': CLIENT_ID,'X-Client-Version': CLIENT_VER};
+  const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+  if (r.status !== 200) { showMsg('share-msg','error',`HTTP ${r.status}`); return; }
+  const data = await r.json();
+  const fi = data.file_info || data;
+  const links = [];
+  for (const m of (fi.medias||[])) { const l=m.link||{}; if(l.url) links.push(l.url); }
+  if (!links.length && fi.web_content_link) links.push(fi.web_content_link);
+  if (!links.length) { showMsg('share-msg','warn','Sem link disponível'); return; }
+  window.open(links[0], '_blank');
+  await navigator.clipboard.writeText(links[0]).catch(()=>{});
+  showMsg('share-msg','success',`✅ Link aberto: ${fileName}`);
+}
+
+async function copyShareLink(fileId, fileName) {
+  const passCode = document.getElementById('inp-pass-code').value.trim();
+  const params = new URLSearchParams({share_id: STATE.shareId, file_id: fileId, thumbnail_size:'SIZE_LARGE'});
+  if (passCode) params.set('pass_code_token', passCode);
+  const headers = {'X-Device-ID': STATE.deviceId,'X-Client-ID': CLIENT_ID,'X-Client-Version': CLIENT_VER};
+  const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+  if (r.status !== 200) { showMsg('share-msg','error',`HTTP ${r.status}`); return; }
+  const data = await r.json();
+  const fi = data.file_info || data;
+  const links = [];
+  for (const m of (fi.medias||[])) { const l=m.link||{}; if(l.url) links.push(l.url); }
+  if (!links.length && fi.web_content_link) links.push(fi.web_content_link);
+  if (!links.length) { showMsg('share-msg','warn','Sem link'); return; }
+  await navigator.clipboard.writeText(links[0]).catch(()=>{});
+  showMsg('share-msg','success',`📋 Copiado: ${fileName}`);
+}
+
+async function copyAllLinks() {
+  const passCode = document.getElementById('inp-pass-code').value.trim();
+  const headers = {'X-Device-ID': STATE.deviceId,'X-Client-ID': CLIENT_ID,'X-Client-Version': CLIENT_VER};
+  showMsg('share-msg','info','<span class="spin"></span> Buscando todos os links...');
+  const allLinks = [];
+  for (const f of STATE.shareFiles) {
+    if (f.kind === 'drive#folder') continue;
+    const params = new URLSearchParams({share_id: STATE.shareId, file_id: f.id, thumbnail_size:'SIZE_LARGE'});
+    if (passCode) params.set('pass_code_token', passCode);
+    try {
+      const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+      if (r.status !== 200) continue;
+      const data = await r.json();
+      const fi = data.file_info || data;
+      for (const m of (fi.medias||[])) { const l=m.link||{}; if(l.url) { allLinks.push(l.url); break; } }
+      if (!allLinks.length || allLinks[allLinks.length-1] !== fi.web_content_link) {
+        if (fi.web_content_link && !(fi.medias||[]).some(m=>m.link?.url)) allLinks.push(fi.web_content_link);
+      }
+    } catch(e) {}
+  }
+  if (!allLinks.length) { showMsg('share-msg','warn','Nenhum link encontrado'); return; }
+  await navigator.clipboard.writeText(allLinks.join('\n')).catch(()=>{});
+  showMsg('share-msg','success',`📋 ${allLinks.length} links copiados!`);
+}
+
+// ===================== DROPBOX =====================
+function saveDropboxConfig() {
+  STATE.dropboxToken  = document.getElementById('inp-dbx-token').value.trim();
+  STATE.dropboxFolder = document.getElementById('inp-dbx-folder').value.trim() || '/PikPak';
+  localStorage.setItem('dbx_token',  STATE.dropboxToken);
+  localStorage.setItem('dbx_folder', STATE.dropboxFolder);
+  showMsg('dbx-msg','success','💾 Config salva!');
+}
+
+async function testDropbox() {
+  const token = document.getElementById('inp-dbx-token').value.trim();
+  if (!token) return showMsg('dbx-msg','error','Token vazio');
+  showMsg('dbx-msg','info','<span class="spin"></span> Testando...');
+  const r = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+    method: 'POST', headers: {'Authorization': `Bearer ${token}`}
+  });
+  if (r.status === 200) {
+    const d = await r.json();
+    showMsg('dbx-msg','success',`✅ Conectado: ${d.name?.display_name || d.email}`);
+  } else {
+    showMsg('dbx-msg','error',`HTTP ${r.status}: Token inválido`);
+  }
+}
+
+async function sendSelectedToDropbox() {
+  if (!STATE.dropboxToken) { switchTab('dropbox'); showMsg('dbx-msg','warn','Configure o token do Dropbox primeiro'); return; }
+  const checked = document.querySelectorAll('.file-cb:checked');
+  if (!checked.length) return;
+  const files = Array.from(checked).map(cb => ({id: cb.dataset.id, name: cb.dataset.name})).filter(f => {
+    const file = STATE.allFiles.find(x => x.id === f.id);
+    return file && file.kind !== 'drive#folder';
+  });
+  if (!files.length) return showMsg('cloud-msg','warn','Nenhum arquivo (não pasta) selecionado');
+  await sendFilesToDropbox(files, 'cloud');
+}
+
+async function sendShareToDropbox() {
+  if (!STATE.dropboxToken) { switchTab('dropbox'); return; }
+  const files = STATE.shareFiles.filter(f => f.kind !== 'drive#folder');
+  await sendFilesToDropbox(files.map(f=>({id:f.id, name:f.name, isShare:true})), 'share');
+}
+
+async function sendFilesToDropbox(files, source) {
+  const queueEl = document.getElementById('dbx-queue');
+  document.getElementById('dbx-queue-card').style.display = 'block';
+  switchTab('dropbox');
+
+  for (const f of files) {
+    const itemEl = document.createElement('div');
+    itemEl.className = 'file-item';
+    itemEl.innerHTML = `
+      <div class="file-info">
+        <div class="file-name">${esc(f.name)}</div>
+        <div class="progress-wrap"><div class="progress-bar" id="pb-${f.id}" style="width:0%"></div></div>
+        <div class="file-meta" id="pm-${f.id}">Aguardando...</div>
+      </div>`;
+    queueEl.prepend(itemEl);
+  }
+
+  for (const f of files) {
+    setProgress(f.id, 10, 'Buscando link...');
+    try {
+      let dlUrl = '';
+      if (f.isShare) {
+        // get download link from share
+        const passCode = document.getElementById('inp-pass-code').value.trim();
+        const params = new URLSearchParams({share_id: STATE.shareId, file_id: f.id, thumbnail_size:'SIZE_LARGE'});
+        if (passCode) params.set('pass_code_token', passCode);
+        const headers = {'X-Device-ID':STATE.deviceId,'X-Client-ID':CLIENT_ID,'X-Client-Version':CLIENT_VER};
+        const r = await fetch(`${API_DRIVE}/drive/v1/share/file_info?${params}`, {headers});
+        if (r.status === 200) {
+          const data = await r.json();
+          const fi = data.file_info || data;
+          for (const m of (fi.medias||[])) { const l=m.link||{}; if(l.url){dlUrl=l.url;break;} }
+          if (!dlUrl) dlUrl = fi.web_content_link || '';
+        }
+      } else {
+        const h = await getHeaders();
+        const r = await fetch(`${API_DRIVE}/drive/v1/files/${f.id}?thumbnail_size=SIZE_LARGE`, {headers:h});
+        if (r.status === 200) {
+          const data = await r.json();
+          for (const m of (data.medias||[])) { const l=m.link||{}; if(l.url){dlUrl=l.url;break;} }
+          if (!dlUrl) dlUrl = data.web_content_link || '';
+        }
+      }
+
+      if (!dlUrl) { setProgress(f.id, 0, '❌ Sem link de download'); continue; }
+
+      setProgress(f.id, 30, 'Baixando do PikPak...');
+      // Fetch file content
+      const fileResp = await fetch(dlUrl);
+      if (!fileResp.ok) { setProgress(f.id, 0, `❌ Download falhou: HTTP ${fileResp.status}`); continue; }
+
+      setProgress(f.id, 60, 'Enviando para Dropbox...');
+      const blob = await fileResp.blob();
+      const path = `${STATE.dropboxFolder}/${f.name}`;
+      const uploadResp = await fetch('https://content.dropboxapi.com/2/files/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${STATE.dropboxToken}`,
+          'Dropbox-API-Arg': JSON.stringify({path, mode:'add', autorename:true}),
+          'Content-Type': 'application/octet-stream',
+        },
+        body: blob
+      });
+      if (uploadResp.ok) {
+        setProgress(f.id, 100, '✅ Enviado!');
+      } else {
+        const err = await uploadResp.text();
+        setProgress(f.id, 0, `❌ Upload falhou: ${err.slice(0,100)}`);
+      }
+    } catch(e) {
+      setProgress(f.id, 0, `❌ Erro: ${e.message}`);
+    }
+  }
+}
+
+function setProgress(fileId, pct, msg) {
+  const pb = document.getElementById(`pb-${fileId}`);
+  const pm = document.getElementById(`pm-${fileId}`);
+  if (pb) pb.style.width = pct + '%';
+  if (pm) pm.textContent = msg;
+}
+
+// ===================== UI UTILS =====================
+function showPanel(panelId) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(panelId).classList.add('active');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  showPanel(`panel-${tab}`);
+}
+
+function switchLoginTab(tab) {
+  document.querySelectorAll('[id^=ltab-]').forEach(t=>t.classList.remove('active'));
+  document.getElementById(`ltab-${tab}`).classList.add('active');
+  document.getElementById('login-token-panel').style.display = tab==='token' ? 'block' : 'none';
+  document.getElementById('login-pass-panel').style.display  = tab==='pass'  ? 'block' : 'none';
+}
+
+function showLoginPanel() {
+  switchTab('cloud');
+  showPanel('panel-login');
+}
+
+function showMsg(elId, type, html) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type}">${html}</div>`;
+}
+function clearMsg(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.innerHTML = '';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '';
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0, n = bytes;
+  while (n >= 1024 && i < 4) { n /= 1024; i++; }
+  return n.toFixed(1) + ' ' + units[i];
+}
+
+function getFileIcon(name) {
+  if (!name) return '📄';
+  const ext = name.split('.').pop().toLowerCase();
+  const icons = {
+    mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',wmv:'🎬',flv:'🎬',webm:'🎬',
+    mp3:'🎵',flac:'🎵',wav:'🎵',m4a:'🎵',aac:'🎵',
+    jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',webp:'🖼',bmp:'🖼',
+    pdf:'📕',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',ppt:'📊',txt:'📃',
+    zip:'📦',rar:'📦','7z':'📦',tar:'📦',gz:'📦',
+    exe:'⚙️',msi:'⚙️',dmg:'⚙️',
+  };
+  return icons[ext] || '📄';
+}
+
+// ===================== INIT =====================
+loadTokens();
+loadDropboxConfig();
+updateStatusBar();
+
+if (STATE.refreshToken) {
+  document.getElementById('auto-login-card').style.display = 'block';
+  doAutoLogin();
+} else if (STATE.accessToken) {
+  onLoginSuccess();
+}
+</script>
 </body>
 </html>

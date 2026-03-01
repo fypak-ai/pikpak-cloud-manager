@@ -371,7 +371,14 @@ async function captchaInitForAction(action, userId='', existingToken='') {
 }
 
 async function getHeaders() {
-  const {token: ct} = await captchaInitForAction('GET:/drive/v1/files');
+  let ct = '';
+  try {
+    const res = await Promise.race([
+      captchaInitForAction('GET:/drive/v1/files'),
+      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+    ]);
+    ct = res.token || '';
+  } catch(e) { ct = ''; }
   return {
     'Authorization': `Bearer ${STATE.accessToken}`,
     'User-Agent': 'Mozilla/5.0',
@@ -389,27 +396,54 @@ async function loginWithToken() {
   token = token.replace(/^["']|["']$/g, '').trim();
 
   showMsg('login-msg', 'info', '<span class="spin"></span> Validando token...');
-  const {token: ct} = await captchaInitForAction('GET:/drive/v1/about');
-  const r = await fetch(`${API_DRIVE}/drive/v1/about`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'X-Device-ID': STATE.deviceId,
-      'X-Captcha-Token': ct || '',
-      'User-Agent': 'Mozilla/5.0',
-    }
-  });
+
+  // Try captchaInit but don't block on CORS failure
+  let ct = '';
+  try {
+    const res = await Promise.race([
+      captchaInitForAction('GET:/drive/v1/about'),
+      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+    ]);
+    ct = res.token || '';
+  } catch(e) {
+    // CORS or timeout — proceed without captcha token
+    ct = '';
+  }
+
+  let r;
+  try {
+    r = await fetch(`${API_DRIVE}/drive/v1/about`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Device-ID': STATE.deviceId,
+        'X-Captcha-Token': ct,
+        'User-Agent': 'Mozilla/5.0',
+      }
+    });
+  } catch(fetchErr) {
+    // CORS block on /about — save token directly (force mode)
+    STATE.accessToken = token;
+    saveTokens();
+    onLoginSuccess();
+    showMsg('login-msg', 'success', '✅ Token salvo! (validação bloqueada por CORS — funcionará ao listar arquivos)');
+    return;
+  }
+
   if (r.status === 200) {
     const d = await r.json();
     STATE.accessToken = token;
     STATE.userId = d.sub || '';
     saveTokens();
     onLoginSuccess();
-    showMsg('login-msg', 'success', '✅ Login via token OK!');
+    showMsg('login-msg', 'success', '✅ Login OK!');
   } else if (r.status === 401 || r.status === 403) {
     showMsg('login-msg', 'error', 'Token expirado ou inválido. Copie novamente do F12 → Network.');
   } else {
-    const err = await r.json().catch(()=>({}));
-    showMsg('login-msg', 'warn', `HTTP ${r.status}: ${err.error_description || err.error || ''}. Tente "Salvar sem validar".`);
+    // Try force-save anyway — /about may CORS-fail but file endpoints work
+    STATE.accessToken = token;
+    saveTokens();
+    onLoginSuccess();
+    showMsg('login-msg', 'warn', `HTTP ${r.status} no /about — token salvo, testando ao listar arquivos...`);
   }
 }
 
@@ -580,7 +614,13 @@ async function listFiles(folderId, pageToken='') {
   if (pageToken) params.set('page_token', pageToken);
 
   let headers = await getHeaders();
-  let r = await fetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers});
+  let r;
+  try {
+    r = await fetch(`${API_DRIVE}/drive/v1/files?${params}`, {headers});
+  } catch(corsErr) {
+    showMsg('cloud-msg','error','❌ CORS bloqueado pela API PikPak. O browser não permite chamadas diretas. <br/>💡 <strong>Solução:</strong> use a versão local (Python) ou aguarde deploy do proxy.');
+    return;
+  }
 
   if (r.status === 401 || r.status === 403) {
     const ok = await refreshIfNeeded();

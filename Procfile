@@ -1,1 +1,1 @@
-web: gunicorn pikpak_extractor:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --keepalive 5
+web: gunicorn pikpak_extractor:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 --worker-class gthread

@@ -25,7 +25,7 @@ def preflight(path):
     r.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
     r.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
     return r, 204
-TOKEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pikpak_tokens.json')
+TOKEN_FILE = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'pikpak_tokens.json')
 
 # ======================== PikPak API Constants (from AList source) ========================
 WEB_CLIENT_ID = "YUMx5nI8ZU8Ap8pm"
@@ -58,7 +58,7 @@ import requests as req_lib
 
 def get_device_id():
     """Persistent device ID so captcha verification sticks"""
-    did_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pikpak_device.json')
+    did_file = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'pikpak_device.json')
     try:
         with open(did_file, 'r') as f:
             return json.load(f)['device_id']

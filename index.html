@@ -455,7 +455,7 @@ async function getHeaders() {
   try {
     const res = await Promise.race([
       captchaInitForAction('GET:/drive/v1/files'),
-      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
     ]);
     ct = res.token || '';
   } catch(e) { ct = ''; }
@@ -482,7 +482,7 @@ async function loginWithToken() {
   try {
     const res = await Promise.race([
       captchaInitForAction('GET:/drive/v1/about'),
-      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
     ]);
     ct = res.token || '';
   } catch(e) {

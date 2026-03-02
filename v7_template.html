@@ -456,7 +456,6 @@ async function captchaInitForAction(action, userId='', existingToken='') {
 
 async function getHeaders() {
   let ct = '';
-  let deviceId = STATE.deviceId;
   // Try server-side captcha init (avoids CORS - works from GitHub Pages too)
   try {
     const selfOrigin = window.location.origin.includes('railway.app') ? window.location.origin
@@ -471,14 +470,6 @@ async function getHeaders() {
       }
     }
   } catch(e) { /* CORS or timeout - ct stays empty */ }
-  return {
-    'Authorization': `Bearer ${STATE.accessToken}`,
-    'User-Agent': 'Mozilla/5.0',
-    'X-Device-ID': deviceId,
-    'X-Captcha-Token': ct,
-    'Content-Type': 'application/json',
-  };
-}
   return {
     'Authorization': `Bearer ${STATE.accessToken}`,
     'User-Agent': 'Mozilla/5.0',

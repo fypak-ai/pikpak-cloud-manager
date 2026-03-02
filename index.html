@@ -1164,8 +1164,13 @@ function showProxyPanel() {
 }
 
 function saveProxyUrl() {
-  const url = document.getElementById('inp-proxy-url').value.trim().replace(/\/$/, '');
+  let url = document.getElementById('inp-proxy-url').value.trim().replace(/\/$/, '');
   if (!url) return showMsg('proxy-msg', 'error', 'URL vazia');
+  // Garantir que a URL começa com https:// (evita concatenação com origin do GitHub Pages)
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+    document.getElementById('inp-proxy-url').value = url;
+  }
   localStorage.setItem('proxy_url', url);
   updateProxyIndicator();
   showMsg('proxy-msg', 'success', '✅ URL salva! Recarregue e tente o login.');

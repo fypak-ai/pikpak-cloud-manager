@@ -705,13 +705,33 @@ def cors_proxy():
 
 
 # ======================== Main ========================
+GITHUB_RAW_INDEX = "https://raw.githubusercontent.com/fypak-ai/pikpak-cloud-manager/main/index.html"
+_index_cache = {"html": None, "ts": 0}
+
 @app.route('/')
 def index():
-    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
-    if os.path.exists(template_path):
-        with open(template_path, 'r', encoding='utf-8') as f:
-            return f.read()
-    return "<h1>PikPak Cloud Manager v7</h1><p>Template v7_template.html nao encontrado.</p>"
+    import time as _time
+    now = _time.time()
+    # Serve from in-memory cache if fresh (<5 min)
+    if _index_cache["html"] and (now - _index_cache["ts"]) < 300:
+        return _index_cache["html"]
+    # Always fetch from GitHub raw (garantia de versao atualizada)
+    try:
+        import urllib.request as _ur
+        with _ur.urlopen(GITHUB_RAW_INDEX, timeout=8) as _r:
+            html = _r.read().decode("utf-8")
+            _index_cache["html"] = html
+            _index_cache["ts"] = now
+            return html
+    except Exception:
+        pass
+    # Fallback: arquivo local
+    for fname in ["index.html", "v7_template.html"]:
+        fpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), fname)
+        if os.path.exists(fpath):
+            with open(fpath, "r", encoding="utf-8") as f:
+                return f.read()
+    return "<h1>PikPak Cloud Manager</h1><p>index.html nao encontrado</p>"
 
 if __name__ == '__main__':
     import os as _os

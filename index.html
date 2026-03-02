@@ -179,6 +179,12 @@ video#player-vid{width:100%;height:100%;display:block;outline:none;}
           <a id="captcha-link" href="#" target="_blank" style="font-size:.8rem;">🔗 Abrir Captcha</a><br/><br/>
           <button class="btn btn-secondary btn-sm" onclick="retryCaptcha()">✅ Já verifiquei</button>
         </div>
+        <div id="otp-section" style="display:none;" class="captcha-box">
+          <p style="font-size:.82rem;margin-bottom:.5rem;">📧 Verificação por e-mail</p>
+          <p style="font-size:.78rem;margin-bottom:.75rem;">O PikPak enviou um código de 6 dígitos para o seu e-mail.<br/>Insira-o abaixo e clique "Verificar".</p>
+          <input class="inp" id="inp-otp" placeholder="Código de 6 dígitos" maxlength="6" style="letter-spacing:.2rem;font-size:1.1rem;text-align:center;" /><br/><br/>
+          <button class="btn btn-primary btn-sm" onclick="submitOtp()">✅ Verificar</button>
+        </div>
         <div class="form-row">
           <button class="btn btn-primary" onclick="loginWithPassword()">Entrar</button>
         </div>
@@ -343,6 +349,7 @@ let STATE = {
   deviceId: getOrCreateDeviceId(),
   dropboxToken: '',
   dropboxFolder: '/PikPak',
+  pendingOtp: null,
   // cloud browser
   folderStack: [{id: '', name: '☁ Raiz'}],
   nextPageToken: '',
@@ -526,6 +533,53 @@ async function retryCaptcha() {
   await doSignin(username, password, token);
 }
 
+async function sendVerificationCode(verificationId) {
+  try {
+    await proxyFetch(`https://user.mypikpak.net/v1/auth/2fa/token`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0','X-Device-ID':STATE.deviceId},
+      body: JSON.stringify({ verification_id: verificationId })
+    });
+  } catch(e) { /* ignore */ }
+}
+
+async function submitOtp() {
+  const code = (document.getElementById('inp-otp') || {}).value || '';
+  if (!code) return showMsg('login-msg', 'error', 'Insira o código de verificação.');
+  const { username, password, captchaToken, verificationId } = STATE.pendingOtp || {};
+  if (!username) return showMsg('login-msg', 'error', 'Sessão expirada. Faça login novamente.');
+  showMsg('login-msg', 'info', '<span class="spin"></span> Verificando código...');
+  const body = {
+    captcha_token: captchaToken || '',
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    username, password,
+    verification_code: code,
+    verification_id: verificationId || '',
+  };
+  const r = await proxyFetch(`${API_USER}/v1/auth/signin?client_id=${CLIENT_ID}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','User-Agent':'Mozilla/5.0',
+              'X-Device-ID':STATE.deviceId,'X-Captcha-Token':captchaToken||''},
+    body: JSON.stringify(body)
+  });
+  if (r.status !== 200) {
+    const err = await r.json().catch(()=>({}));
+    const desc = err.error_description || err.error || `HTTP ${r.status}`;
+    showMsg('login-msg', 'error', desc);
+    return;
+  }
+  const resp = await r.json();
+  STATE.accessToken  = resp.access_token  || '';
+  STATE.refreshToken = resp.refresh_token || '';
+  STATE.userId       = resp.sub           || '';
+  saveTokens();
+  document.getElementById('captcha-section').style.display = 'none';
+  document.getElementById('otp-section').style.display = 'none';
+  onLoginSuccess();
+  showMsg('login-msg', 'success', '✅ Login OK!');
+}
+
 async function doSignin(username, password, captchaToken) {
   const body = {
     captcha_token: captchaToken || '',
@@ -551,6 +605,24 @@ async function doSignin(username, password, captchaToken) {
         showMsg('login-msg', 'warn', '🧩 Complete o captcha e clique "Já verifiquei".');
         return;
       }
+    }
+    // PikPak exige código de verificação por e-mail (novo device/IP)
+    const needsOtp = err.error_code === 4002
+      || desc.toLowerCase().includes('verification')
+      || desc.toLowerCase().includes('verify')
+      || (err.verification_id);
+    if (needsOtp) {
+      const vid = err.verification_id || '';
+      STATE.pendingOtp = { username, password, captchaToken, verificationId: vid };
+      // Enviar código por e-mail se tiver verification_id
+      if (vid) {
+        await sendVerificationCode(vid);
+        showMsg('login-msg', 'warn', '📧 Código enviado para o seu e-mail. Insira abaixo e clique "Verificar".');
+      } else {
+        showMsg('login-msg', 'warn', '📧 Insira o código de verificação enviado ao seu e-mail.');
+      }
+      document.getElementById('otp-section').style.display = 'block';
+      return;
     }
     showMsg('login-msg', 'error', desc + ' — Use o método Access Token');
     return;

@@ -707,7 +707,7 @@ def cors_proxy():
 # ======================== Main ========================
 @app.route('/')
 def index():
-    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'v7_template.html')
+    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
     if os.path.exists(template_path):
         with open(template_path, 'r', encoding='utf-8') as f:
             return f.read()

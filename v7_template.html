@@ -318,13 +318,11 @@ const ALGORITHMS = [
 async function proxyFetch(url, options = {}) {
   // Auto-detect: if running on Railway (has /api/proxy on same origin), use it
   const stored = localStorage.getItem('proxy_url') || '';
-  const selfProxy = (window.location.pathname === '/' || window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))
+  const selfProxy = (window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))
     ? window.location.origin : '';
-  const proxyBase = stored || selfProxy;
-  if (!proxyBase) {
-    // No proxy configured — try direct (will likely CORS-fail)
-    return fetch(url, options);
-  }
+  // Fallback hardcoded: sempre usar Railway se não houver proxy configurado
+  const RAILWAY_FALLBACK = 'https://pikpak-cloud-manager-production.up.railway.app';
+  const proxyBase = stored || selfProxy || RAILWAY_FALLBACK;
   // Route through proxy: POST to /api/proxy with {url, method, headers, body}
   const method = options.method || 'GET';
   const headers = options.headers || {};
@@ -459,8 +457,8 @@ async function getHeaders() {
   // Try server-side captcha init (avoids CORS - works from GitHub Pages too)
   try {
     const selfOrigin = window.location.origin.includes('railway.app') ? window.location.origin
-      : (localStorage.getItem('proxy_url') || '').replace(/\/$/, '');
-    if (selfOrigin) {
+      : (localStorage.getItem('proxy_url') || 'https://pikpak-cloud-manager-production.up.railway.app').replace(/\/$/, '');
+    {
       const r = await fetch(`${selfOrigin}/api/captcha-init?action=GET%3A%2Fdrive%2Fv1%2Ffiles&user_id=${encodeURIComponent(STATE.userId || '')}&device_id=${encodeURIComponent(STATE.deviceId)}`,
         { signal: AbortSignal.timeout(8000) });
       if (r.ok) {

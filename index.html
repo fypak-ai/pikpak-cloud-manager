@@ -462,13 +462,12 @@ async function getHeaders() {
     const selfOrigin = window.location.origin.includes('railway.app') ? window.location.origin
       : (localStorage.getItem('proxy_url') || '').replace(/\/$/, '');
     if (selfOrigin) {
-      const r = await fetch(`${selfOrigin}/api/captcha-init?action=GET%3A%2Fdrive%2Fv1%2Ffiles&user_id=${encodeURIComponent(STATE.userId || '')}`,
+      const r = await fetch(`${selfOrigin}/api/captcha-init?action=GET%3A%2Fdrive%2Fv1%2Ffiles&user_id=${encodeURIComponent(STATE.userId || '')}&device_id=${encodeURIComponent(STATE.deviceId)}`,
         { signal: AbortSignal.timeout(8000) });
       if (r.ok) {
         const d = await r.json();
         ct = d.captcha_token || '';
-        // Use server device_id so captcha token matches the device that generated it
-        if (d.device_id) deviceId = d.device_id;
+        // captcha token gerado com o device_id do browser — nao sobrescrever
       }
     }
   } catch(e) { /* CORS or timeout - ct stays empty */ }

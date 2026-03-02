@@ -93,7 +93,7 @@ def captcha_init_for_login(username):
         "action": "POST:/v1/auth/signin",
         "captcha_token": "",
         "client_id": WEB_CLIENT_ID,
-        "device_id": DEVICE_ID,
+        "device_id": did,
         "meta": metas,
         "redirect_uri": "xlaccsdk01://xbase.cloud/callback?state=harbor",
     }
@@ -109,8 +109,10 @@ def captcha_init_for_login(username):
     url = data.get("url", "")
     return captcha_token, url
 
-def captcha_init_for_action(action, user_id="", existing_captcha_token=""):
-    """captcha/init for post-login actions: meta has captcha_sign, timestamp, etc."""
+def captcha_init_for_action(action, user_id="", existing_captcha_token="", device_id=None):
+    """captcha/init for post-login actions: meta has captcha_sign, timestamp, etc.
+    device_id: use browser device_id if provided, otherwise use server DEVICE_ID."""
+    did = device_id or DEVICE_ID
     timestamp, captcha_sign = get_captcha_sign()
     metas = {
         "client_version": WEB_CLIENT_VERSION,
@@ -124,7 +126,7 @@ def captcha_init_for_action(action, user_id="", existing_captcha_token=""):
         "action": action,
         "captcha_token": existing_captcha_token,
         "client_id": WEB_CLIENT_ID,
-        "device_id": DEVICE_ID,
+        "device_id": did,
         "meta": metas,
         "redirect_uri": "xlaccsdk01://xbase.cloud/callback?state=harbor",
     }
@@ -133,7 +135,7 @@ def captcha_init_for_action(action, user_id="", existing_captcha_token=""):
         f"{API_USER}/v1/shield/captcha/init",
         json=body,
         params={"client_id": WEB_CLIENT_ID},
-        headers={"User-Agent": "Mozilla/5.0", "X-Device-ID": DEVICE_ID}
+        headers={"User-Agent": "Mozilla/5.0", "X-Device-ID": did}
     )
     data = r.json()
     return data.get("captcha_token", ""), data.get("url", "")

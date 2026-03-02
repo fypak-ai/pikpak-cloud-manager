@@ -645,15 +645,17 @@ def dropbox_send():
 
 @app.route('/api/captcha-init', methods=['GET', 'POST'])
 def api_captcha_init():
-    """Server-side captcha init - avoids CORS issues from browser"""
-    action = request.args.get('action') or (request.json or {}).get('action', 'GET:/drive/v1/files')
-    user_id = request.args.get('user_id') or (request.json or {}).get('user_id', '')
-    existing_token = request.args.get('existing_token') or (request.json or {}).get('existing_token', '')
+    """Server-side captcha init - avoids CORS issues from browser.
+    Also returns device_id so frontend can use a consistent device identity."""
+    body = request.get_json(silent=True) or {}
+    action = request.args.get('action') or body.get('action', 'GET:/drive/v1/files')
+    user_id = request.args.get('user_id') or body.get('user_id', '')
+    existing_token = request.args.get('existing_token') or body.get('existing_token', '')
     try:
         ct, url = captcha_init_for_action(action, user_id, existing_token)
-        return jsonify({"captcha_token": ct, "url": url})
+        return jsonify({"captcha_token": ct, "url": url, "device_id": DEVICE_ID})
     except Exception as e:
-        return jsonify({"captcha_token": "", "url": "", "error": str(e)})
+        return jsonify({"captcha_token": "", "url": "", "device_id": DEVICE_ID, "error": str(e)})
 
 @app.route('/api/proxy', methods=['POST'])
 def cors_proxy():

@@ -456,13 +456,29 @@ async function captchaInitForAction(action, userId='', existingToken='') {
 
 async function getHeaders() {
   let ct = '';
+  // Try server-side captcha init first (avoids CORS)
   try {
-    const res = await Promise.race([
-      captchaInitForAction('GET:/drive/v1/files'),
-      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 4000))
-    ]);
-    ct = res.token || '';
-  } catch(e) { ct = ''; }
+    const selfOrigin = window.location.origin.includes('railway.app') ? window.location.origin
+      : (localStorage.getItem('proxy_url') || '').replace(/\/$/, '');
+    if (selfOrigin) {
+      const r = await fetch(`${selfOrigin}/api/captcha-init?action=GET:/drive/v1/files&user_id=${encodeURIComponent(STATE.userId || '')}`,
+        { signal: AbortSignal.timeout(8000) });
+      if (r.ok) { const d = await r.json(); ct = d.captcha_token || ''; }
+    }
+  } catch(e) {
+    try {
+      const res = await Promise.race([captchaInitForAction('GET:/drive/v1/files'), new Promise((_,rej)=>setTimeout(()=>rej(),4000))]);
+      ct = res.token || '';
+    } catch(e2) { ct = ''; }
+  }
+  return {
+    'Authorization': `Bearer ${STATE.accessToken}`,
+    'User-Agent': 'Mozilla/5.0',
+    'X-Device-ID': STATE.deviceId,
+    'X-Captcha-Token': ct,
+    'Content-Type': 'application/json',
+  };
+}
   return {
     'Authorization': `Bearer ${STATE.accessToken}`,
     'User-Agent': 'Mozilla/5.0',

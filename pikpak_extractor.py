@@ -642,6 +642,19 @@ def dropbox_send():
 
 
 # ===================== Generic CORS Proxy =====================
+
+@app.route('/api/captcha-init', methods=['GET', 'POST'])
+def api_captcha_init():
+    """Server-side captcha init - avoids CORS issues from browser"""
+    action = request.args.get('action') or (request.json or {}).get('action', 'GET:/drive/v1/files')
+    user_id = request.args.get('user_id') or (request.json or {}).get('user_id', '')
+    existing_token = request.args.get('existing_token') or (request.json or {}).get('existing_token', '')
+    try:
+        ct, url = captcha_init_for_action(action, user_id, existing_token)
+        return jsonify({"captcha_token": ct, "url": url})
+    except Exception as e:
+        return jsonify({"captcha_token": "", "url": "", "error": str(e)})
+
 @app.route('/api/proxy', methods=['POST'])
 def cors_proxy():
     """Pass-through proxy: browser sends {url, method, headers, body} → we forward to PikPak → return response"""

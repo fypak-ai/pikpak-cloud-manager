@@ -2,9 +2,6 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate"/>
-<meta http-equiv="pragma" content="no-cache"/>
-<meta http-equiv="expires" content="0"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>PikPak Cloud Manager</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
@@ -295,7 +292,7 @@ video#player-vid{width:100%;height:100%;display:block;outline:none;}
 // ===================== CONSTANTS =====================
 // PROXY: Flask backend on Railway. All /api/* calls go here.
 // Direct PikPak URLs kept as fallback reference only.
-const PROXY_BASE = localStorage.getItem('proxy_url') || 'https://pikpak-cloud-manager-production.up.railway.app';
+const PROXY_BASE = localStorage.getItem('proxy_url') || '';
 const API_USER   = 'https://user.mypikpak.net';
 const API_DRIVE  = 'https://api-drive.mypikpak.net';
 const CLIENT_ID  = 'YUMx5nI8ZU8Ap8pm';
@@ -304,8 +301,8 @@ const CLIENT_VER = '2.0.0';
 const PKG_NAME   = 'mypikpak.com';
 function apiUrl(path) {
   // Use proxy if configured, else try direct (will CORS-fail without proxy)
-  const base = localStorage.getItem('proxy_url') || 'https://pikpak-cloud-manager-production.up.railway.app';
-  return base.replace(/\/$/, '') + path;
+  const base = localStorage.getItem('proxy_url') || '';
+  return base ? base.replace(/\/$/, '') + path : null;
 }
 const ALGORITHMS = [
   'C9qPpZLN8ucRTaTiUMWYS9cQvWOE','+r6CQVxjzJV6LCV','F','pFJRC',
@@ -319,7 +316,15 @@ const ALGORITHMS = [
 // ===================== PROXY FETCH =====================
 // Routes requests through Flask proxy (Railway) to avoid CORS
 async function proxyFetch(url, options = {}) {
-  const proxyBase = localStorage.getItem('proxy_url') || 'https://pikpak-cloud-manager-production.up.railway.app';
+  // Auto-detect: if running on Railway (has /api/proxy on same origin), use it
+  const stored = localStorage.getItem('proxy_url') || '';
+  const selfProxy = (window.location.pathname === '/' || window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))
+    ? window.location.origin : '';
+  const proxyBase = stored || selfProxy;
+  if (!proxyBase) {
+    // No proxy configured — try direct (will likely CORS-fail)
+    return fetch(url, options);
+  }
   // Route through proxy: POST to /api/proxy with {url, method, headers, body}
   const method = options.method || 'GET';
   const headers = options.headers || {};
@@ -451,13 +456,30 @@ async function captchaInitForAction(action, userId='', existingToken='') {
 
 async function getHeaders() {
   let ct = '';
+  let deviceId = STATE.deviceId;
+  // Try server-side captcha init (avoids CORS - works from GitHub Pages too)
   try {
-    const res = await Promise.race([
-      captchaInitForAction('GET:/drive/v1/files'),
-      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-    ]);
-    ct = res.token || '';
-  } catch(e) { ct = ''; }
+    const selfOrigin = window.location.origin.includes('railway.app') ? window.location.origin
+      : (localStorage.getItem('proxy_url') || '').replace(/\/$/, '');
+    if (selfOrigin) {
+      const r = await fetch(`${selfOrigin}/api/captcha-init?action=GET%3A%2Fdrive%2Fv1%2Ffiles&user_id=${encodeURIComponent(STATE.userId || '')}`,
+        { signal: AbortSignal.timeout(8000) });
+      if (r.ok) {
+        const d = await r.json();
+        ct = d.captcha_token || '';
+        // Use server device_id so captcha token matches the device that generated it
+        if (d.device_id) deviceId = d.device_id;
+      }
+    }
+  } catch(e) { /* CORS or timeout - ct stays empty */ }
+  return {
+    'Authorization': `Bearer ${STATE.accessToken}`,
+    'User-Agent': 'Mozilla/5.0',
+    'X-Device-ID': deviceId,
+    'X-Captcha-Token': ct,
+    'Content-Type': 'application/json',
+  };
+}
   return {
     'Authorization': `Bearer ${STATE.accessToken}`,
     'User-Agent': 'Mozilla/5.0',
@@ -474,56 +496,13 @@ async function loginWithToken() {
   if (token.toLowerCase().startsWith('bearer ')) token = token.slice(7).trim();
   token = token.replace(/^["']|["']$/g, '').trim();
 
-  showMsg('login-msg', 'info', '<span class="spin"></span> Validando token...');
+  showMsg('login-msg', 'info', '<span class="spin"></span> Salvando token...');
 
-  // Try captchaInit but don't block on CORS failure
-  let ct = '';
-  try {
-    const res = await Promise.race([
-      captchaInitForAction('GET:/drive/v1/about'),
-      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-    ]);
-    ct = res.token || '';
-  } catch(e) {
-    // CORS or timeout — proceed without captcha token
-    ct = '';
-  }
-
-  let r;
-  try {
-    r = await proxyFetch(`${API_DRIVE}/drive/v1/about`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'X-Device-ID': STATE.deviceId,
-        'X-Captcha-Token': ct,
-        'User-Agent': 'Mozilla/5.0',
-      }
-    });
-  } catch(fetchErr) {
-    // CORS block on /about — save token directly (force mode)
-    STATE.accessToken = token;
-    saveTokens();
-    onLoginSuccess();
-    showMsg('login-msg', 'success', '✅ Token salvo! (validação bloqueada por CORS — funcionará ao listar arquivos)');
-    return;
-  }
-
-  if (r.status === 200) {
-    const d = await r.json();
-    STATE.accessToken = token;
-    STATE.userId = d.sub || '';
-    saveTokens();
-    onLoginSuccess();
-    showMsg('login-msg', 'success', '✅ Login OK!');
-  } else if (r.status === 401 || r.status === 403) {
-    showMsg('login-msg', 'error', 'Token expirado ou inválido. Copie novamente do F12 → Network.');
-  } else {
-    // Try force-save anyway — /about may CORS-fail but file endpoints work
-    STATE.accessToken = token;
-    saveTokens();
-    onLoginSuccess();
-    showMsg('login-msg', 'warn', `HTTP ${r.status} no /about — token salvo, testando ao listar arquivos...`);
-  }
+  // Save token directly and enter — validation happens on first file list
+  STATE.accessToken = token;
+  saveTokens();
+  onLoginSuccess();
+  showMsg('login-msg', 'success', '✅ Token salvo! Carregando arquivos...');
 }
 
 async function loginForceToken() {
@@ -608,7 +587,7 @@ async function doAutoLogin() {
       grant_type: 'refresh_token', refresh_token: STATE.refreshToken
     })
   });
-  if (r.status !== 200) { loadTokens(); updateStatusBar(); showMsg('login-msg','warn','⚠️ Sessão expirada. Faça login novamente.'); return; }
+  if (r.status !== 200) { loadTokens(); updateStatusBar(); return; }
   const resp = await r.json();
   if (resp.error_code && resp.error_code !== 0) { updateStatusBar(); return; }
   STATE.accessToken  = resp.access_token  || STATE.accessToken;
@@ -681,7 +660,7 @@ async function listFiles(folderId, pageToken='') {
   }
   currentFolderId = folderId || '';
   if (!pageToken) { STATE.allFiles = []; STATE.nextPageToken = ''; }
-  showMsg('cloud-msg','info','<span class="spin"></span> Carregando arquivos...');
+  showMsg('cloud-msg','info','<span class="spin"></span> Carregando...');
 
   const params = new URLSearchParams({
     parent_id: currentFolderId,
@@ -726,7 +705,7 @@ async function listFiles(folderId, pageToken='') {
 
 function renderFileList() {
   const container = document.getElementById('file-list');
-  if (!STATE.allFiles.length) { container.innerHTML = '<p style="color:var(--muted);font-size:.85rem;">📂 Pasta vazia. <a href="#" onclick="listFiles(currentFolderId);return false;" style="color:var(--accent)">Tentar novamente</a></p>'; return; }
+  if (!STATE.allFiles.length) { container.innerHTML = '<p style="color:var(--muted);font-size:.82rem;">Pasta vazia.</p>'; return; }
   container.innerHTML = '';
   for (const f of STATE.allFiles) {
     const isFolder = f.kind === 'drive#folder';
@@ -1164,13 +1143,8 @@ function showProxyPanel() {
 }
 
 function saveProxyUrl() {
-  let url = document.getElementById('inp-proxy-url').value.trim().replace(/\/$/, '');
+  const url = document.getElementById('inp-proxy-url').value.trim().replace(/\/$/, '');
   if (!url) return showMsg('proxy-msg', 'error', 'URL vazia');
-  // Garantir que a URL começa com https:// (evita concatenação com origin do GitHub Pages)
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
-    document.getElementById('inp-proxy-url').value = url;
-  }
   localStorage.setItem('proxy_url', url);
   updateProxyIndicator();
   showMsg('proxy-msg', 'success', '✅ URL salva! Recarregue e tente o login.');
@@ -1456,6 +1430,13 @@ async function copyPlayerUrl() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
 
 // ===================== INIT =====================
+// Auto-configure proxy when running on Railway
+(function() {
+  const stored = localStorage.getItem('proxy_url') || '';
+  if (!stored && (window.location.origin.includes('railway.app') || window.location.origin.includes('up.railway.app'))) {
+    localStorage.setItem('proxy_url', window.location.origin);
+  }
+})();
 loadTokens();
 loadDropboxConfig();
 updateStatusBar();
